@@ -101,7 +101,7 @@ const Competitions = () => {
       <View style={styles.backButtonContainer}>
         <TouchableOpacity onPress={() => {
             console.log('Back button pressed');
-            router.back();
+            router.push('/');
         }} style={styles.hitbox}>
             <Feather name="arrow-left" size={24} color="black" />
         </TouchableOpacity>
