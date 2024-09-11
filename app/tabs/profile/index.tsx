@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { auth, db, storage } from '../firebase.js'; // Adjust this path according to your project structure
+import { auth, db, storage } from '../../../firebase.js'; // Adjust this path according to your project structure
 import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';

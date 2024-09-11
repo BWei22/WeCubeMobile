@@ -46,7 +46,7 @@ export default function SignUp() {
       
       <Button title="Sign Up" onPress={handleSignUp} />
 
-      <TouchableOpacity onPress={() => router.push('/login')} style={{ marginTop: 20 }}>
+      <TouchableOpacity onPress={() => router.replace('/login')} style={{ marginTop: 20 }}>
         <Text style={{ color: 'blue', textAlign: 'center' }}>Already have an account? Login</Text>
       </TouchableOpacity>
     </View>

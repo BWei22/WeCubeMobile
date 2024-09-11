@@ -84,7 +84,7 @@ const Competitions = () => {
   };
 
   const handleCompetitionClick = (competitionId: string) => {
-    router.push(`./listings/${competitionId}` as const);
+    router.push(`/tabs/competitions/${competitionId}`);
   };
   
   if (loading) {
@@ -98,17 +98,6 @@ const Competitions = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.backButtonContainer}>
-        <TouchableOpacity onPress={() => {
-            console.log('Back button pressed');
-            router.push('/');
-        }} style={styles.hitbox}>
-            <Feather name="arrow-left" size={24} color="black" />
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.title}>{view === 'current' ? 'Current Competitions' : 'Recent Competitions'}</Text>
-
       <View style={styles.viewToggle}>
         <Button 
           title="Current"
