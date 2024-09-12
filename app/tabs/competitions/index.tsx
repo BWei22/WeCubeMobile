@@ -3,8 +3,6 @@ import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Button, 
 import { useRouter } from 'expo-router';
 import Flag from 'react-native-flags';
 import axios from 'axios';
-import { Feather } from '@expo/vector-icons';
-
 
 interface Competition {
   id: string;
@@ -146,17 +144,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: '#fff',
-  },
-  backButtonContainer: {
-    position: 'absolute',
-    top: 15,
-    left: 20,
-    zIndex: 10,
-  },  
-  hitbox: {
-    padding: 8,  // Increase padding to make the hitbox larger
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   loadingContainer: {
     flex: 1,

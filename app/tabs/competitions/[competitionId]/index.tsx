@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Button, TouchableOpacity } from 'react-native';
+import { View, Text, Button, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import axios from 'axios';
-import { Feather } from '@expo/vector-icons';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../../../../firebase'; // Adjust this path as needed
 
+// Define the Listing interface
 interface Listing {
   id: string;
   name: string;
-  details: string;
+  price: number;
+  imageUrl: string;
+  puzzleType: string;
+  usage: string;
+  description: string;
+  userId: string;
+  createdAt: number;
 }
 
 const Listings = () => {
@@ -17,20 +24,38 @@ const Listings = () => {
   const router = useRouter();
 
   useEffect(() => {
-    axios.get(`https://example-api.com/competitions/${competitionId}/listings`)
-      .then(response => {
-        setListings(response.data);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error('Error fetching listings:', error);
-        setLoading(false);
+    const q = query(collection(db, 'listings'), where('competitionId', '==', competitionId));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const listingsData = snapshot.docs.map(doc => {
+        const data = doc.data();
+
+        // Make sure all required fields are present
+        return {
+          id: doc.id,
+          name: data.name || 'Unnamed',  // Fallback if name is missing
+          price: data.price || 0,  // Fallback if price is missing
+          imageUrl: data.imageUrl || '',
+          puzzleType: data.puzzleType || 'Unknown',
+          usage: data.usage || 'Unknown',
+          description: data.description || '',
+          userId: data.userId || 'Unknown',
+          createdAt: data.createdAt || Date.now(),
+        } as Listing;  // Explicitly cast to Listing type
       });
+
+      setListings(listingsData);
+      setLoading(false);
+    }, error => {
+      console.error('Error fetching listings:', error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [competitionId]);
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#0000ff" />
         <Text>Loading listings...</Text>
       </View>
@@ -38,26 +63,20 @@ const Listings = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.backButtonContainer}>
-        <TouchableOpacity onPress={() => {
-            console.log('Back button pressed');
-            router.back();
-        }} style={styles.hitbox}>
-            <Feather name="arrow-left" size={24} color="black" />
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.title}>Listings for Competition {competitionId}</Text>
-
+    <View style={{ flex: 1, padding: 20 }}>
+      <Button
+        title="Create New Listing"
+        onPress={() => router.push(`/tabs/competitions/${competitionId}/create-listing`)}
+      />
+      
       <FlatList
         data={listings}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <View style={styles.listingItem}>
-            <Text style={styles.listingName}>{item.name}</Text>
-            <Text style={styles.listingDetails}>{item.details}</Text>
-          </View>
+          <TouchableOpacity onPress={() => router.push(`/tabs/competitions/${competitionId}/${item.id}`)}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{item.name}</Text>
+            <Text>${item.price}</Text>
+          </TouchableOpacity>
         )}
       />
     </View>
@@ -65,45 +84,3 @@ const Listings = () => {
 };
 
 export default Listings;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  backButtonContainer: {
-    position: 'absolute',
-    top: 15,
-    left: 20,
-    zIndex: 10,
-  },  
-  hitbox: {
-    padding: 8,  // Increase padding to make the hitbox larger
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  listingItem: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
-  listingName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  listingDetails: {
-    color: '#777',
-  },
-});
