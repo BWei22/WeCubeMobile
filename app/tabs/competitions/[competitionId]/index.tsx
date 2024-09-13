@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, Button, FlatList, TouchableOpacity, ActivityIndicator, Image, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../../firebase'; // Adjust this path as needed
@@ -73,9 +73,17 @@ const Listings = () => {
         data={listings}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => router.push(`/tabs/competitions/${competitionId}/${item.id}`)}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{item.name}</Text>
-            <Text>${item.price}</Text>
+          <TouchableOpacity 
+            style={styles.cardContainer} 
+            onPress={() => router.push(`/tabs/competitions/${competitionId}/${item.id}`)}
+          >
+            <View style={styles.card}>
+              <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>{item.name}</Text>
+                <Text style={styles.cardPrice}>${item.price}</Text>
+              </View>
+            </View>
           </TouchableOpacity>
         )}
       />
@@ -84,3 +92,38 @@ const Listings = () => {
 };
 
 export default Listings;
+
+const styles = StyleSheet.create({
+  cardContainer: {
+    marginBottom: 20,  // Spacing between cards
+  },
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,  // For Android shadow effect
+  },
+  cardImage: {
+    width: 100,
+    height: 100,
+    resizeMode: 'cover',
+  },
+  cardContent: {
+    flex: 1,
+    padding: 10,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  cardPrice: {
+    fontSize: 16,
+    color: '#777',
+  },
+});

@@ -1,10 +1,9 @@
-// app/profile.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db, storage } from '../../../firebase.js'; // Adjust this path according to your project structure
 import { updateProfile } from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -16,11 +15,19 @@ export default function ProfileScreen() {
 
   const user = auth.currentUser;
 
-  // Fetch current user profile data
+  // Fetch current user profile data from Firestore and auth
   const fetchUserProfile = async () => {
     if (user) {
-      setUsername(user.displayName || '');
-      setProfilePicture(user.photoURL || null);
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setUsername(userData.username || '');
+          setProfilePicture(userData.photoURL || null);
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
     }
   };
 
@@ -35,7 +42,7 @@ export default function ProfileScreen() {
         displayName: username,
       });
       const userDoc = doc(db, 'users', user.uid);
-      await updateDoc(userDoc, { username: username });
+      await updateDoc(userDoc, { username });
     }
   };
 
@@ -69,9 +76,14 @@ export default function ProfileScreen() {
   };
 
   const handleSave = async () => {
-    await handleUsernameChange();
-    await handleProfilePictureChange();
-    alert('Profile updated successfully!');
+    try {
+      await handleUsernameChange();
+      await handleProfilePictureChange();
+      Alert.alert('Success', 'Profile updated successfully!');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', 'There was an error updating the profile. Please try again.');
+    }
   };
 
   return (

@@ -5,7 +5,7 @@ export default function HomeStack() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ title: 'Competitions List', headerShown: false }} />
-      <Stack.Screen name="[competitionId]" options={{ title: 'This Competition' }} />
+      <Stack.Screen name="[competitionId]" options={{ title: 'This Competition', headerShown: false }} />
     </Stack>
   );
 }

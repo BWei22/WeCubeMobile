@@ -1,9 +1,9 @@
-// app/signup.tsx
 import React, { useState } from 'react';
 import { View, TextInput, Button, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';  // Adjust this import based on your firebase setup
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';  // Firestore functions
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
@@ -11,9 +11,28 @@ export default function SignUp() {
   const [error, setError] = useState('');
   const router = useRouter();
 
+  // Function to generate the username based on account creation timestamp
+  const generateUsername = () => {
+    const timestamp = Date.now();
+    return `user${timestamp}`;
+  };
+
   const handleSignUp = () => {
     createUserWithEmailAndPassword(auth, email, password)
-      .then(() => {
+      .then(async (userCredential) => {
+        const user = userCredential.user;
+
+        // Generate a unique username based on the timestamp
+        const username = generateUsername();
+
+        // Store the user data along with the generated username in Firestore
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          username: username,
+          createdAt: serverTimestamp(),
+        });
+
+        // Navigate to home page after signup
         router.replace('/');
       })
       .catch((error) => {
