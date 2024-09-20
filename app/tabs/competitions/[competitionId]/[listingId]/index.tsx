@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Button, Image, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, query, where, collection, getDocs } from 'firebase/firestore';
 import { db, auth } from '../../../../../firebase';  // Adjust this path as needed
 
 interface Listing {
@@ -80,28 +80,32 @@ const ListingDetails = () => {
       router.push('/login');  // Redirect to the login page if the user is not authenticated
       return;
     }
-
-    const conversationId = `${listingId}_${auth.currentUser.uid}_${listing.userId}`;
-
-    try {
-      const conversationRef = doc(db, 'conversations', conversationId);
-      const conversationDoc = await getDoc(conversationRef);
-
-      if (!conversationDoc.exists()) {
-        await setDoc(conversationRef, {
-          listingId,
-          participants: [auth.currentUser.uid, listing.userId],
-          createdAt: serverTimestamp(),
-          lastMessage: '',
-          unreadBy: [listing.userId],
-        });
-      }
-
-      // router.push(`/conversations?selected=${conversationId}`);
-    } catch (error) {
-      console.error('Error creating conversation:', error);
+  
+    const buyerId = auth.currentUser.uid;
+    const sellerId = listing.userId;
+  
+    // Step 1: Generate a conversation ID that is independent of the order of buyerId and sellerId
+    const sortedIds = [buyerId, sellerId].sort();  // Sort the two user IDs alphabetically
+    const conversationId = `${sortedIds[0]}_${sortedIds[1]}`;  // Create a unique conversation ID
+  
+    // Step 2: Check if the conversation already exists
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+  
+    // Step 3: If no conversation exists, create one
+    if (!conversationDoc.exists()) {
+      await setDoc(conversationRef, {
+        participants: sortedIds,  // Store the participants in sorted order
+        createdAt: serverTimestamp(),
+        lastMessage: '',
+        unreadBy: [sellerId],  // Mark the seller as having unread messages initially
+      });
     }
+  
+    // Step 4: Navigate to the conversation page
+    router.push(`/tabs/messages/${conversationId}`);
   };
+  
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -119,6 +123,7 @@ const ListingDetails = () => {
         <Text style={styles.listingDetail}>Seller: <Text style={styles.detailValue}>{sellerUsername}</Text></Text>
       </View>
 
+      {/* Only show the Contact Seller button if the current user is not the seller */}
       {listing.userId !== auth.currentUser?.uid && (
         <Button title="Contact the Seller" onPress={handleContactSeller} color="#007BFF" />
       )}

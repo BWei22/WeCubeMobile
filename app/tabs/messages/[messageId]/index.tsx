@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, Button, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Button, ScrollView, ActivityIndicator, Image, StyleSheet, TouchableOpacity } from 'react-native'; // Make sure TouchableOpacity is imported
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, collection, query, where, onSnapshot, addDoc, updateDoc, getDoc, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../../../firebase';  // Adjust this path as needed
@@ -8,16 +8,18 @@ interface Message {
   senderId: string;
   message: string;
   recipientId: string;
-  timestamp: number;
+  timestamp: any;  // Timestamp from Firebase
   isRead: boolean;
 }
 
 const MessageScreen = () => {
   const { messageId } = useLocalSearchParams<{ messageId: string }>();
-  const [msgs, setMsgs] = useState<Message[]>([]);  // Define the correct type for msgs
+  const [msgs, setMsgs] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [recipientId, setRecipientId] = useState('');
-  const scrollViewRef = useRef<ScrollView>(null);  // Ref for ScrollView to implement scrollToEnd
+  const [recipientUsername, setRecipientUsername] = useState('');
+  const [recipientProfilePicture, setRecipientProfilePicture] = useState<string | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -31,10 +33,19 @@ const MessageScreen = () => {
         const docRef = doc(db, 'messages', messageId as string);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setRecipientId(docSnap.data().recipientId);
+          const recipientIdFromDoc = docSnap.data().recipientId;
+          setRecipientId(recipientIdFromDoc);
+
+          // Fetch the recipient's username and profile picture
+          const recipientDocRef = doc(db, 'users', recipientIdFromDoc);
+          const recipientDocSnap = await getDoc(recipientDocRef);
+          if (recipientDocSnap.exists()) {
+            setRecipientUsername(recipientDocSnap.data().username || 'Unknown');
+            setRecipientProfilePicture(recipientDocSnap.data().photoURL || null);
+          }
         }
       } catch (error) {
-        console.error('Error fetching recipient ID:', error);
+        console.error('Error fetching recipient details:', error);
       }
 
       const messagesQuery = query(
@@ -74,21 +85,19 @@ const MessageScreen = () => {
         senderId: auth.currentUser.uid,
         message: newMessage,
         recipientId: currentRecipientId,
-        timestamp: serverTimestamp() as any,  // casting as any for simplicity with Firebase timestamps
+        timestamp: serverTimestamp() as any,
         isRead: false,
       };
 
-      // Add the new message to the messages collection
       await addDoc(collection(db, 'messages'), {
         ...messageData,
         conversationId: messageId,
       });
 
-      // Update the last message in the conversation document
       const conversationRef = doc(db, 'conversations', messageId as string);
       await updateDoc(conversationRef, {
         lastMessage: messageData,
-        unreadBy: [currentRecipientId],  // Mark the recipient as having unread messages
+        unreadBy: [currentRecipientId],
       });
 
       setNewMessage('');
@@ -99,36 +108,158 @@ const MessageScreen = () => {
 
   if (!messageId) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={styles.centeredContainer}>
         <Text>No conversation selected</Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, padding: 10 }}>
-      <ScrollView ref={scrollViewRef} style={{ flex: 1 }}>
+    <View style={styles.container}>
+      <View style={styles.profileHeader}>
+        {recipientProfilePicture ? (
+          <Image source={{ uri: recipientProfilePicture }} style={styles.profilePicture} />
+        ) : (
+          <View style={styles.profilePicturePlaceholder} />
+        )}
+        <Text style={styles.profileUsername}>{recipientUsername}</Text>
+      </View>
+
+      <ScrollView ref={scrollViewRef} style={styles.messageContainer}>
         {msgs.length === 0 ? (
-          <ActivityIndicator size="large" color="#0000ff" />
+          <ActivityIndicator size="large" color="#007BFF" />
         ) : (
           msgs.map((msg, index) => (
-            <View key={index} style={{ marginVertical: 10, padding: 10, backgroundColor: msg.senderId === auth.currentUser?.uid ? '#dcf8c6' : '#fff' }}>
-              <Text>{msg.message}</Text>
+            <View
+              key={index}
+              style={[
+                styles.messageBubble,
+                msg.senderId === auth.currentUser?.uid ? styles.sentMessage : styles.receivedMessage,
+              ]}
+            >
+              <Text style={styles.messageText}>{msg.message}</Text>
+              {msg.timestamp ? (
+                <Text style={styles.timestamp}>
+                    {new Date(msg.timestamp.seconds * 1000).toLocaleTimeString()}
+                </Text>
+              ) : (
+                <Text style={styles.timestamp}>Time not available</Text>
+              )}
             </View>
           ))
         )}
       </ScrollView>
 
-      <TextInput
-        placeholder="Type a message"
-        value={newMessage}
-        onChangeText={setNewMessage}
-        style={{ borderWidth: 1, padding: 10, marginVertical: 10 }}
-      />
-
-      <Button title="Send" onPress={handleSendMessage} disabled={!newMessage.trim()} />
+      <View style={styles.inputContainer}>
+        <TextInput
+          placeholder="Type a message..."
+          value={newMessage}
+          onChangeText={setNewMessage}
+          style={styles.textInput}
+        />
+        <TouchableOpacity onPress={handleSendMessage} disabled={!newMessage.trim()} style={styles.sendButton}>
+          <Text style={styles.sendButtonText}>Send</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 10,
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  profilePicture: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  profilePicturePlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#eee',
+    marginRight: 10,
+  },
+  profileUsername: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  messageContainer: {
+    flex: 1,
+    paddingBottom: 20,
+  },
+  messageBubble: {
+    marginVertical: 8,
+    maxWidth: '80%',
+    borderRadius: 15,
+    padding: 10,
+  },
+  sentMessage: {
+    backgroundColor: '#DCF8C6',
+    alignSelf: 'flex-end',
+    borderTopRightRadius: 0,
+  },
+  receivedMessage: {
+    backgroundColor: '#fff',
+    alignSelf: 'flex-start',
+    borderTopLeftRadius: 0,
+    borderColor: '#ccc',
+    borderWidth: 1,
+  },
+  messageText: {
+    fontSize: 16,
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'right',
+    marginTop: 5,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    padding: 10,
+    borderTopWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#f9f9f9',
+  },
+  textInput: {
+    flex: 1,
+    height: 40,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    backgroundColor: '#fff',
+  },
+  sendButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#007BFF',
+    borderRadius: 20,
+    marginLeft: 10,
+    paddingHorizontal: 15,
+  },
+  sendButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
 
 export default MessageScreen;

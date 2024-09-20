@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db, storage } from '../../../firebase.js'; // Adjust this path according to your project structure
-import { updateProfile } from 'firebase/auth';
+import { updateProfile, signOut } from 'firebase/auth';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -86,6 +86,15 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); 
+      router.replace('/login'); 
+    } catch(error) {
+      Alert.alert('Error', 'There was an error logging out. Please try again.'); 
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Edit Profile</Text>
@@ -95,6 +104,7 @@ export default function ProfileScreen() {
         value={username}
         onChangeText={setUsername}
         style={styles.input}
+        autoCapitalize='none'
       />
 
       <TouchableOpacity onPress={pickImage}>
@@ -108,6 +118,8 @@ export default function ProfileScreen() {
       </TouchableOpacity>
 
       <Button title={uploading ? "Saving..." : "Save Changes"} onPress={handleSave} disabled={uploading} />
+
+      <Button title="Logout" onPress={handleLogout} color="#FF0000"/>
     </View>
   );
 }
