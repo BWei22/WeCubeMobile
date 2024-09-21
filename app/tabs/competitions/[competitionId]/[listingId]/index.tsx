@@ -109,7 +109,6 @@ const ListingDetails = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Button title="Back" onPress={() => router.back()} />
       
       <Image source={{ uri: listing.imageUrl }} style={styles.listingImage} />
       
