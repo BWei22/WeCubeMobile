@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Image, StyleSheet } from 'react-native';
-import { collection, query, where, onSnapshot, getDoc, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../../../firebase'; // Adjust path to your Firebase config
 import { useRouter } from 'expo-router';
 
-// Define a type for the conversation structure
 interface Conversation {
   id: string;
   participants: string[];
@@ -12,6 +11,7 @@ interface Conversation {
     message: string;
     senderId: string;
     timestamp: any;
+    isRead?: boolean;  // To track whether the last message has been read
   };
 }
 
@@ -42,12 +42,9 @@ const Messages = () => {
         const data = docSnapshot.data() as Conversation;
         const conversationData = { ...data, id: docSnapshot.id };
 
-        // Add conversation to list
         convos.push(conversationData);
 
-        // Fetch usernames for participants (excluding the current user)
         const otherParticipantId = data.participants.find(id => id !== auth.currentUser?.uid);
-
         if (otherParticipantId && !usernamesMap[otherParticipantId]) {
           const userDocRef = doc(db, 'users', otherParticipantId);
           const userDocSnap = await getDoc(userDocRef);
@@ -55,7 +52,7 @@ const Messages = () => {
             const userData = userDocSnap.data() as User;
             usernamesMap[otherParticipantId] = {
               username: userData.username || 'Unknown',
-              photoURL: userData.photoURL || 'https://via.placeholder.com/40',  // Default placeholder image
+              photoURL: userData.photoURL || 'https://via.placeholder.com/40',
             };
           }
         }
@@ -69,14 +66,52 @@ const Messages = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleConversationClick = (conversation: Conversation) => {
+  const handleConversationClick = async (conversation: Conversation) => {
     router.push(`/tabs/messages/${conversation.id}`);
+
+    // Fetch unread messages in this conversation and mark them as read
+    const q = query(
+      collection(db, 'messages'),
+      where('conversationId', '==', conversation.id),
+      where('recipientId', '==', auth.currentUser?.uid),
+      where('isRead', '==', false)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.forEach(async (messageDoc) => {
+        // Mark message as read
+        await updateDoc(messageDoc.ref, { isRead: true });
+      });
+    });
+
+    // Mark the last message in the conversation as read (for the red dot logic)
+    if (conversation.lastMessage?.isRead === false) {
+      const conversationRef = doc(db, 'conversations', conversation.id);
+      await updateDoc(conversationRef, {
+        'lastMessage.isRead': true,
+      });
+    }
+
+    return () => unsubscribe();
+  };
+
+  const hasUnreadMessages = (conversation: Conversation): boolean => {
+    // Check if the last message in the conversation is unread
+    return conversation.lastMessage?.isRead === false;
   };
 
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#007BFF" />
+      </View>
+    );
+  }
+
+  if (conversations.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No conversations yet.</Text>
       </View>
     );
   }
@@ -98,6 +133,7 @@ const Messages = () => {
                 {item.lastMessage?.message || 'No messages yet'}
               </Text>
             </View>
+            {hasUnreadMessages(item) && <View style={styles.unreadIndicator} />}
           </TouchableOpacity>
         );
       }}
@@ -112,12 +148,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#888',
+  },
   conversationItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 15,
     paddingHorizontal: 20,
     backgroundColor: '#fff',
+    position: 'relative',
   },
   profilePicture: {
     width: 50,
@@ -143,6 +189,16 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#E0E0E0',
     marginHorizontal: 20,
+  },
+  unreadIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'red',
+    position: 'absolute',
+    right: 20,
+    top: '50%',
+    transform: [{ translateY: -5 }],
   },
 });
 

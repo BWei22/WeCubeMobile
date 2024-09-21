@@ -125,7 +125,7 @@ const CreateListing = () => {
       Alert.alert("Listing created successfully!");
 
       // Navigate to the newly created listing's details page
-      router.push(`/tabs/competitions/${competitionId}/${listingId}`);
+      router.back();
     } catch (error) {
       console.error("Error creating listing: ", error);
       Alert.alert("Error creating listing. Please try again.");
