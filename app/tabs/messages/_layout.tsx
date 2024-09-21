@@ -5,7 +5,7 @@ export default function MessagesStack() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ title: 'Messages', headerShown: false }} />
-      <Stack.Screen name="[messageId]" options={{ title: 'This Conversation' }} />
+      <Stack.Screen name="[messageId]" options={{ title: 'This Conversation', headerShown: false }} />
     </Stack>
   );
 }

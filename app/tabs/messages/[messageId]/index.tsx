@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, Button, ScrollView, ActivityIndicator, Image, StyleSheet, TouchableOpacity } from 'react-native'; // Make sure TouchableOpacity is imported
+import { View, Text, TextInput, Button, ScrollView, ActivityIndicator, Image, StyleSheet, TouchableOpacity } from 'react-native'; 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, collection, query, where, onSnapshot, addDoc, updateDoc, getDoc, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../../../firebase';  // Adjust this path as needed
@@ -28,16 +28,21 @@ const MessageScreen = () => {
       return;
     }
 
-    const fetchMessages = async () => {
+    const fetchConversationDetails = async () => {
       try {
-        const docRef = doc(db, 'messages', messageId as string);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const recipientIdFromDoc = docSnap.data().recipientId;
-          setRecipientId(recipientIdFromDoc);
+        // Fetch the conversation document to get the participants
+        const conversationRef = doc(db, 'conversations', messageId as string);
+        const conversationSnap = await getDoc(conversationRef);
+        if (conversationSnap.exists()) {
+          const conversationData = conversationSnap.data();
+          const participants = conversationData.participants;
+
+          // Filter out the current user to get the other participant's ID
+          const otherUserId = participants.find((id: string) => id !== auth.currentUser?.uid);
+          setRecipientId(otherUserId);
 
           // Fetch the recipient's username and profile picture
-          const recipientDocRef = doc(db, 'users', recipientIdFromDoc);
+          const recipientDocRef = doc(db, 'users', otherUserId);
           const recipientDocSnap = await getDoc(recipientDocRef);
           if (recipientDocSnap.exists()) {
             setRecipientUsername(recipientDocSnap.data().username || 'Unknown');
@@ -69,7 +74,7 @@ const MessageScreen = () => {
       return () => unsubscribe();
     };
 
-    fetchMessages();
+    fetchConversationDetails();
   }, [messageId]);
 
   const handleSendMessage = async () => {

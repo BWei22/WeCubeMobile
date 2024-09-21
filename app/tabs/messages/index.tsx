@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Image, StyleSheet } from 'react-native';
+import { collection, query, where, onSnapshot, getDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../../../firebase'; // Adjust path to your Firebase config
 import { useRouter } from 'expo-router';
 
@@ -15,8 +15,14 @@ interface Conversation {
   };
 }
 
+interface User {
+  username: string;
+  photoURL: string;
+}
+
 const Messages = () => {
-  const [conversations, setConversations] = useState<Conversation[]>([]); // Correct type for conversations array
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [usernames, setUsernames] = useState<{ [key: string]: { username: string; photoURL: string } }>({});
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -28,14 +34,35 @@ const Messages = () => {
       where('participants', 'array-contains', auth.currentUser.uid)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const convos: Conversation[] = []; // Declare an array of Conversation type
-      snapshot.forEach((doc) => {
-        const data = doc.data() as Conversation;
-        const conversationData = { ...data, id: doc.id }; // Ensure id is set only once
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const convos: Conversation[] = [];
+      const usernamesMap: { [key: string]: { username: string; photoURL: string } } = {};
+
+      for (const docSnapshot of snapshot.docs) {
+        const data = docSnapshot.data() as Conversation;
+        const conversationData = { ...data, id: docSnapshot.id };
+
+        // Add conversation to list
         convos.push(conversationData);
-      });
+
+        // Fetch usernames for participants (excluding the current user)
+        const otherParticipantId = data.participants.find(id => id !== auth.currentUser?.uid);
+
+        if (otherParticipantId && !usernamesMap[otherParticipantId]) {
+          const userDocRef = doc(db, 'users', otherParticipantId);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data() as User;
+            usernamesMap[otherParticipantId] = {
+              username: userData.username || 'Unknown',
+              photoURL: userData.photoURL || 'https://via.placeholder.com/40',  // Default placeholder image
+            };
+          }
+        }
+      }
+
       setConversations(convos);
+      setUsernames(prevState => ({ ...prevState, ...usernamesMap }));
       setLoading(false);
     });
 
@@ -47,35 +74,76 @@ const Messages = () => {
   };
 
   if (loading) {
-    return <ActivityIndicator size="large" color="#0000ff" />;
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#007BFF" />
+      </View>
+    );
   }
 
   return (
-    <View style={{ flex: 1, padding: 20 }}>
-      {conversations.length === 0 ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text>No messages yet!</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={conversations}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => handleConversationClick(item)}>
-              <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: '#ccc' }}>
-                <Text style={{ fontSize: 18 }}>
-                  Conversation with {item.participants.filter(id => id !== auth.currentUser?.uid).join(', ')}
-                </Text>
-                <Text>
-                  {item.lastMessage?.message || 'No messages yet'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
-      )}
-    </View>
+    <FlatList
+      data={conversations}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => {
+        const otherParticipantId = item.participants.find(id => id !== auth.currentUser?.uid);
+        const otherParticipant = usernames[otherParticipantId || ''] || { username: 'Unknown', photoURL: 'https://via.placeholder.com/40' };
+
+        return (
+          <TouchableOpacity onPress={() => handleConversationClick(item)} style={styles.conversationItem}>
+            <Image source={{ uri: otherParticipant.photoURL }} style={styles.profilePicture} />
+            <View style={styles.conversationDetails}>
+              <Text style={styles.username}>{otherParticipant.username}</Text>
+              <Text style={styles.lastMessage}>
+                {item.lastMessage?.message || 'No messages yet'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        );
+      }}
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
+    />
   );
 };
+
+const styles = StyleSheet.create({
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  conversationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: '#fff',
+  },
+  profilePicture: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 15,
+  },
+  conversationDetails: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  username: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 3,
+  },
+  lastMessage: {
+    fontSize: 14,
+    color: '#888',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#E0E0E0',
+    marginHorizontal: 20,
+  },
+});
 
 export default Messages;
