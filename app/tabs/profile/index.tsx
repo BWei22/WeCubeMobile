@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { auth, db, storage } from '../../../firebase.js'; 
+import { auth, db, storage } from '../../../firebase.js';
 import { updateProfile, signOut } from 'firebase/auth';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
@@ -78,47 +91,54 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth); 
-      router.replace('/login'); 
-    } catch(error) {
-      Alert.alert('Error', 'There was an error logging out. Please try again.'); 
+      await signOut(auth);
+      router.replace('/login');
+    } catch (error) {
+      Alert.alert('Error', 'There was an error logging out. Please try again.');
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Edit Profile</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Edit Profile</Text>
 
-      <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-        {profilePicture ? (
-          <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
-        ) : (
-          <View style={styles.profilePicturePlaceholder}>
-            <Text style={styles.imagePickerText}>Select Profile Picture</Text>
-          </View>
-        )}
-      </TouchableOpacity>
+          <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+            {profilePicture ? (
+              <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
+            ) : (
+              <View style={styles.profilePicturePlaceholder}>
+                <Text style={styles.imagePickerText}>Select Profile Picture</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-      <TextInput
-        placeholder="Username"
-        value={username}
-        onChangeText={setUsername}
-        style={styles.input}
-        autoCapitalize='none'
-      />
+          <TextInput
+            placeholder="Username"
+            value={username}
+            onChangeText={setUsername}
+            style={styles.input}
+            autoCapitalize="none"
+          />
 
-      <TouchableOpacity 
-        style={[styles.saveButton, uploading && styles.disabledButton]} 
-        onPress={handleSave} 
-        disabled={uploading}
-      >
-        {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Save Changes</Text>}
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.saveButton, uploading && styles.disabledButton]}
+            onPress={handleSave}
+            disabled={uploading}
+          >
+            {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Save Changes</Text>}
+          </TouchableOpacity>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutButtonText}>Logout</Text>
-      </TouchableOpacity>
-    </View>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Text, TouchableOpacity } from 'react-native';
+import {
+  View,
+  TextInput,
+  Button,
+  Text,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { auth, db } from '../firebase';  // Adjust this import based on your firebase setup
+import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';  // Firestore functions
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
@@ -11,28 +22,21 @@ export default function SignUp() {
   const [error, setError] = useState('');
   const router = useRouter();
 
-  // Function to generate the username based on account creation timestamp
-  const generateUsername = () => {
-    const timestamp = Date.now();
-    return `user${timestamp}`;
-  };
+  const generateUsername = () => `user${Date.now()}`;
 
   const handleSignUp = () => {
     createUserWithEmailAndPassword(auth, email, password)
       .then(async (userCredential) => {
         const user = userCredential.user;
 
-        // Generate a unique username based on the timestamp
         const username = generateUsername();
 
-        // Store the user data along with the generated username in Firestore
         await setDoc(doc(db, 'users', user.uid), {
           email: user.email,
           username: username,
           createdAt: serverTimestamp(),
         });
 
-        // Navigate to home page after signup
         router.replace('/');
       })
       .catch((error) => {
@@ -41,33 +45,75 @@ export default function SignUp() {
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#fff'}}>
-      <Text style={{ fontSize: 24, marginBottom: 20, textAlign: 'center' }}>Sign Up</Text>
-      
-      <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        style={{ marginBottom: 20, padding: 10, borderWidth: 1, borderRadius: 5 }}
-      />
-      
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={{ marginBottom: 20, padding: 10, borderWidth: 1, borderRadius: 5 }}
-      />
-      
-      {error ? <Text style={{ color: 'red', marginBottom: 20 }}>{error}</Text> : null}
-      
-      <Button title="Sign Up" onPress={handleSignUp} />
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.inner}>
+          <Text style={styles.title}>Sign Up</Text>
 
-      <TouchableOpacity onPress={() => router.replace('/login')} style={{ marginTop: 20 }}>
-        <Text style={{ color: 'blue', textAlign: 'center' }}>Already have an account? Login</Text>
-      </TouchableOpacity>
-    </View>
+          <TextInput
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            style={styles.input}
+          />
+
+          <TextInput
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            style={styles.input}
+          />
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <Button title="Sign Up" onPress={handleSignUp} />
+
+          <TouchableOpacity onPress={() => router.replace('/login')} style={styles.link}>
+            <Text style={styles.linkText}>Already have an account? Login</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  inner: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 24,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  input: {
+    marginBottom: 20,
+    padding: 10,
+    borderWidth: 1,
+    borderRadius: 5,
+    borderColor: '#ccc',
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 20,
+  },
+  link: {
+    marginTop: 20,
+  },
+  linkText: {
+    color: 'blue',
+    textAlign: 'center',
+  },
+});

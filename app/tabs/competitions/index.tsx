@@ -1,5 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Button, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  Button,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import Flag from 'react-native-flags';
 import axios from 'axios';
@@ -23,12 +36,13 @@ const Competitions = () => {
   const router = useRouter();
 
   useEffect(() => {
-    axios.get('https://raw.githubusercontent.com/robiningelbrecht/wca-rest-api/master/api/competitions-page-1.json')
-      .then(response => {
+    axios
+      .get('https://raw.githubusercontent.com/robiningelbrecht/wca-rest-api/master/api/competitions-page-1.json')
+      .then((response) => {
         setCompetitions(response.data.items);
         setLoading(false);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Error fetching competitions:', error);
         setLoading(false);
       });
@@ -37,7 +51,7 @@ const Competitions = () => {
   const currentDate = new Date().getTime();
   const pastMonthDate = new Date().setMonth(new Date().getMonth() - 1);
 
-  const filteredCompetitions = competitions.filter(comp => {
+  const filteredCompetitions = competitions.filter((comp) => {
     const competitionEndDate = new Date(`${comp.date.till}T23:59:59Z`).getTime();
     const competitionStartDate = new Date(`${comp.date.from}T00:00:00Z`).getTime();
     const isUpcoming = competitionStartDate >= currentDate;
@@ -45,14 +59,16 @@ const Competitions = () => {
     const isPastMonth = competitionEndDate < currentDate && competitionEndDate >= pastMonthDate;
 
     if (view === 'current') {
-      return (isUpcoming || isRightNow) && (
-        comp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        comp.city.toLowerCase().includes(searchQuery.toLowerCase())
+      return (
+        (isUpcoming || isRightNow) &&
+        (comp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          comp.city.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     } else if (view === 'past') {
-      return isPastMonth && (
-        comp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        comp.city.toLowerCase().includes(searchQuery.toLowerCase())
+      return (
+        isPastMonth &&
+        (comp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          comp.city.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
@@ -84,7 +100,7 @@ const Competitions = () => {
   const handleCompetitionClick = (competitionId: string) => {
     router.push(`/tabs/competitions/${competitionId}`);
   };
-  
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -95,45 +111,52 @@ const Competitions = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.viewToggle}>
-        <Button 
-          title="Current"
-          onPress={() => setView('current')}
-          color={view === 'current' ? 'blue' : 'gray'}
-        />
-        <Button 
-          title="Past Month"
-          onPress={() => setView('past')}
-          color={view === 'past' ? 'blue' : 'gray'}
-        />
-      </View>
-      
-      <TextInput
-        placeholder="Search Competitions"
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        style={styles.searchInput}
-      />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.container}>
+          <View style={styles.viewToggle}>
+            <Button
+              title="Current"
+              onPress={() => setView('current')}
+              color={view === 'current' ? 'blue' : 'gray'}
+            />
+            <Button
+              title="Past Month"
+              onPress={() => setView('past')}
+              color={view === 'past' ? 'blue' : 'gray'}
+            />
+          </View>
 
-      <FlatList
-        data={sortedCompetitions}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.competitionItem} onPress={() => handleCompetitionClick(item.id)}>
-            <View style={styles.flagContainer}>
-              <Flag code={item.country} size={32} />
-            </View>
-            <View style={styles.detailsContainer}>
-              <Text style={styles.competitionName}>{item.name}</Text>
-              <Text style={styles.competitionDate}>
-                {formatDateRange(item.date.from, item.date.till)}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-      />
-    </View>
+          <TextInput
+            placeholder="Search Competitions"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={styles.searchInput}
+          />
+
+          <FlatList
+            data={sortedCompetitions}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.competitionItem} onPress={() => handleCompetitionClick(item.id)}>
+                <View style={styles.flagContainer}>
+                  <Flag code={item.country} size={32} />
+                </View>
+                <View style={styles.detailsContainer}>
+                  <Text style={styles.competitionName}>{item.name}</Text>
+                  <Text style={styles.competitionDate}>
+                    {formatDateRange(item.date.from, item.date.till)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -149,12 +172,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
   },
   viewToggle: {
     flexDirection: 'row',

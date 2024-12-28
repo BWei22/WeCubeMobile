@@ -1,6 +1,16 @@
-// app/password-recovery.tsx
 import React, { useState } from 'react';
-import { View, TextInput, Button, Text, TouchableOpacity } from 'react-native';
+import {
+  View,
+  TextInput,
+  Button,
+  Text,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import { auth } from '../firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { useRouter } from 'expo-router';
@@ -22,26 +32,72 @@ export default function PasswordRecovery() {
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', padding: 20, backgroundColor: 'fff' }}>
-      <Text style={{ fontSize: 24, marginBottom: 20, textAlign: 'center' }}>Password Recovery</Text>
-      
-      <TextInput
-        placeholder="Enter your email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        style={{ marginBottom: 20, padding: 10, borderWidth: 1, borderRadius: 5 }}
-      />
-      
-      {message ? <Text style={{ color: 'green', marginBottom: 20 }}>{message}</Text> : null}
-      {error ? <Text style={{ color: 'red', marginBottom: 20 }}>{error}</Text> : null}
-      
-      <Button title="Reset Password" onPress={handlePasswordRecovery} />
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.inner}>
+          <Text style={styles.title}>Password Recovery</Text>
 
-      <TouchableOpacity onPress={() => router.push('/login')} style={{ marginTop: 20 }}>
-        <Text style={{ color: 'blue', textAlign: 'center' }}>Back to Login</Text>
-      </TouchableOpacity>
-    </View>
+          <TextInput
+            placeholder="Enter your email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            style={styles.input}
+          />
+
+          {message ? <Text style={styles.successText}>{message}</Text> : null}
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <Button title="Reset Password" onPress={handlePasswordRecovery} />
+
+          <TouchableOpacity onPress={() => router.push('/login')} style={styles.link}>
+            <Text style={styles.linkText}>Back to Login</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  inner: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 24,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  input: {
+    marginBottom: 20,
+    padding: 10,
+    borderWidth: 1,
+    borderRadius: 5,
+    borderColor: '#ccc',
+  },
+  successText: {
+    color: 'green',
+    marginBottom: 20,
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 20,
+  },
+  link: {
+    marginTop: 20,
+  },
+  linkText: {
+    color: 'blue',
+    textAlign: 'center',
+  },
+});
