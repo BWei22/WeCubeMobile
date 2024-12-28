@@ -85,7 +85,10 @@ const Messages = () => {
     });
 
     // Mark the last message in the conversation as read (for the red dot logic)
-    if (conversation.lastMessage?.isRead === false) {
+    if (
+      conversation.lastMessage?.isRead === false &&
+      conversation.lastMessage?.senderId !== auth.currentUser?.uid
+    ) {
       const conversationRef = doc(db, 'conversations', conversation.id);
       await updateDoc(conversationRef, {
         'lastMessage.isRead': true,
@@ -96,9 +99,12 @@ const Messages = () => {
   };
 
   const hasUnreadMessages = (conversation: Conversation): boolean => {
-    // Check if the last message in the conversation is unread
-    return conversation.lastMessage?.isRead === false;
-  };
+    // Check if the last message is unread AND the current user is the recipient
+    return (
+      conversation.lastMessage?.isRead === false &&
+      conversation.lastMessage?.senderId !== auth.currentUser?.uid
+    );
+  };  
 
   if (loading) {
     return (

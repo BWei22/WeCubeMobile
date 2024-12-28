@@ -7,7 +7,7 @@ export default function Home() {
   const router = useRouter();
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
       <Text>Welcome to WeCubeMobile</Text>
       <Button title="Login" onPress={() => router.push('/login')} />
       <Button title="Sign Up" onPress={() => router.push('/signup')} />
