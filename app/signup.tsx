@@ -41,7 +41,7 @@ export default function SignUp() {
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
+    <View style={{ flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#fff'}}>
       <Text style={{ fontSize: 24, marginBottom: 20, textAlign: 'center' }}>Sign Up</Text>
       
       <TextInput
