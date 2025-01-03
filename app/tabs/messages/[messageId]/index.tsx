@@ -1,39 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Button,
-  ScrollView,
-  ActivityIndicator,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Platform,
-} from 'react-native';
+import { View, Text, TextInput, Button, ScrollView, ActivityIndicator, Image, StyleSheet, TouchableOpacity } from 'react-native'; 
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  doc,
-  collection,
-  query,
-  where,
-  onSnapshot,
-  addDoc,
-  updateDoc,
-  getDoc,
-  orderBy,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db, auth } from '../../../../firebase';
+import { doc, collection, query, where, onSnapshot, addDoc, updateDoc, getDoc, orderBy, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../../../../firebase';  // Adjust this path as needed
 
 interface Message {
   senderId: string;
   message: string;
   recipientId: string;
-  timestamp: any;
+  timestamp: any;  // Timestamp from Firebase
   isRead: boolean;
 }
 
@@ -55,15 +30,18 @@ const MessageScreen = () => {
 
     const fetchConversationDetails = async () => {
       try {
+        // Fetch the conversation document to get the participants
         const conversationRef = doc(db, 'conversations', messageId as string);
         const conversationSnap = await getDoc(conversationRef);
         if (conversationSnap.exists()) {
           const conversationData = conversationSnap.data();
           const participants = conversationData.participants;
 
+          // Filter out the current user to get the other participant's ID
           const otherUserId = participants.find((id: string) => id !== auth.currentUser?.uid);
           setRecipientId(otherUserId);
 
+          // Fetch the recipient's username and profile picture
           const recipientDocRef = doc(db, 'users', otherUserId);
           const recipientDocSnap = await getDoc(recipientDocRef);
           if (recipientDocSnap.exists()) {
@@ -82,7 +60,7 @@ const MessageScreen = () => {
       );
 
       const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-        const msgsData = snapshot.docs.map((doc) => ({
+        const msgsData = snapshot.docs.map(doc => ({
           senderId: doc.data().senderId,
           message: doc.data().message,
           recipientId: doc.data().recipientId,
@@ -142,64 +120,53 @@ const MessageScreen = () => {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
-          <View style={styles.profileHeader}>
-            {recipientProfilePicture ? (
-              <Image source={{ uri: recipientProfilePicture }} style={styles.profilePicture} />
-            ) : (
-              <View style={styles.profilePicturePlaceholder} />
-            )}
-            <Text style={styles.profileUsername}>{recipientUsername}</Text>
-          </View>
+    <View style={styles.container}>
+      <View style={styles.profileHeader}>
+        {recipientProfilePicture ? (
+          <Image source={{ uri: recipientProfilePicture }} style={styles.profilePicture} />
+        ) : (
+          <View style={styles.profilePicturePlaceholder} />
+        )}
+        <Text style={styles.profileUsername}>{recipientUsername}</Text>
+      </View>
 
-          <ScrollView ref={scrollViewRef} style={styles.messageContainer}>
-            {msgs.length === 0 ? (
-              <ActivityIndicator size="large" color="#007BFF" />
-            ) : (
-              msgs.map((msg, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.messageBubble,
-                    msg.senderId === auth.currentUser?.uid ? styles.sentMessage : styles.receivedMessage,
-                  ]}
-                >
-                  <Text style={styles.messageText}>{msg.message}</Text>
-                  {msg.timestamp ? (
-                    <Text style={styles.timestamp}>
-                      {new Date(msg.timestamp.seconds * 1000).toLocaleTimeString()}
-                    </Text>
-                  ) : (
-                    <Text style={styles.timestamp}>Time not available</Text>
-                  )}
-                </View>
-              ))
-            )}
-          </ScrollView>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              placeholder="Type a message..."
-              value={newMessage}
-              onChangeText={setNewMessage}
-              style={styles.textInput}
-            />
-            <TouchableOpacity
-              onPress={handleSendMessage}
-              disabled={!newMessage.trim()}
-              style={styles.sendButton}
+      <ScrollView ref={scrollViewRef} style={styles.messageContainer}>
+        {msgs.length === 0 ? (
+          <ActivityIndicator size="large" color="#007BFF" />
+        ) : (
+          msgs.map((msg, index) => (
+            <View
+              key={index}
+              style={[
+                styles.messageBubble,
+                msg.senderId === auth.currentUser?.uid ? styles.sentMessage : styles.receivedMessage,
+              ]}
             >
-              <Text style={styles.sendButtonText}>Send</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+              <Text style={styles.messageText}>{msg.message}</Text>
+              {msg.timestamp ? (
+                <Text style={styles.timestamp}>
+                    {new Date(msg.timestamp.seconds * 1000).toLocaleTimeString()}
+                </Text>
+              ) : (
+                <Text style={styles.timestamp}>Time not available</Text>
+              )}
+            </View>
+          ))
+        )}
+      </ScrollView>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          placeholder="Type a message..."
+          value={newMessage}
+          onChangeText={setNewMessage}
+          style={styles.textInput}
+        />
+        <TouchableOpacity onPress={handleSendMessage} disabled={!newMessage.trim()} style={styles.sendButton}>
+          <Text style={styles.sendButtonText}>Send</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 

@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, Image, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  Button,
+  Image,
+  ActivityIndicator,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, getDoc, setDoc, serverTimestamp, query, where, collection, getDocs } from 'firebase/firestore';
-import { db, auth } from '../../../../../firebase';  // Adjust this path as needed
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../../../../../firebase'; // Adjust this path as needed
 
 interface Listing {
   id: string;
@@ -16,27 +29,18 @@ interface Listing {
 }
 
 const ListingDetails = () => {
-  const { listingId } = useLocalSearchParams<{ listingId: string }>();  // Strongly type listingId
-  const [listing, setListing] = useState<Listing | null>(null);  // Define the correct type for listing
+  const { listingId } = useLocalSearchParams<{ listingId: string }>(); // Strongly type listingId
+  const [listing, setListing] = useState<Listing | null>(null);
   const [sellerUsername, setSellerUsername] = useState('');
   const router = useRouter();
-
-  // Ensure listingId is available before proceeding
-  if (!listingId) {
-    return (
-      <View style={styles.centeredContainer}>
-        <Text>Listing not found!</Text>
-      </View>
-    );
-  }
 
   useEffect(() => {
     const fetchListing = async () => {
       try {
-        const docRef = doc(db, 'listings', listingId as string);  // Ensure listingId is passed as a string
+        const docRef = doc(db, 'listings', listingId as string);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          const listingData = docSnap.data() as Listing;  // Cast the document data to Listing type
+          const listingData = docSnap.data() as Listing;
           setListing({
             id: listingId as string,
             name: listingData.name || 'Unnamed Listing',
@@ -48,7 +52,6 @@ const ListingDetails = () => {
             userId: listingData.userId || 'Unknown',
           });
 
-          // Fetch the seller's username
           const userDocRef = doc(db, 'users', listingData.userId);
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists()) {
@@ -65,6 +68,34 @@ const ListingDetails = () => {
     fetchListing();
   }, [listingId]);
 
+  const handleContactSeller = async () => {
+    if (!auth.currentUser) {
+      alert('You must be logged in to contact the seller.');
+      router.push('/login');
+      return;
+    }
+
+    const buyerId = auth.currentUser.uid;
+    const sellerId = listing?.userId;
+
+    const sortedIds = [buyerId, sellerId].sort();
+    const conversationId = `${sortedIds[0]}_${sortedIds[1]}`;
+
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationRef);
+
+    if (!conversationDoc.exists()) {
+      await setDoc(conversationRef, {
+        participants: sortedIds,
+        createdAt: serverTimestamp(),
+        lastMessage: '',
+        unreadBy: [sellerId],
+      });
+    }
+
+    router.push(`/tabs/messages/${conversationId}`);
+  };
+
   if (!listing) {
     return (
       <View style={styles.centeredContainer}>
@@ -74,59 +105,45 @@ const ListingDetails = () => {
     );
   }
 
-  const handleContactSeller = async () => {
-    if (!auth.currentUser) {
-      alert('You must be logged in to contact the seller.');
-      router.push('/login');  // Redirect to the login page if the user is not authenticated
-      return;
-    }
-  
-    const buyerId = auth.currentUser.uid;
-    const sellerId = listing.userId;
-  
-    // Step 1: Generate a conversation ID that is independent of the order of buyerId and sellerId
-    const sortedIds = [buyerId, sellerId].sort();  // Sort the two user IDs alphabetically
-    const conversationId = `${sortedIds[0]}_${sortedIds[1]}`;  // Create a unique conversation ID
-  
-    // Step 2: Check if the conversation already exists
-    const conversationRef = doc(db, 'conversations', conversationId);
-    const conversationDoc = await getDoc(conversationRef);
-  
-    // Step 3: If no conversation exists, create one
-    if (!conversationDoc.exists()) {
-      await setDoc(conversationRef, {
-        participants: sortedIds,  // Store the participants in sorted order
-        createdAt: serverTimestamp(),
-        lastMessage: '',
-        unreadBy: [sellerId],  // Mark the seller as having unread messages initially
-      });
-    }
-  
-    // Step 4: Navigate to the conversation page
-    router.push(`/tabs/messages/${conversationId}`);
-  };
-  
-
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      
-      <Image source={{ uri: listing.imageUrl }} style={styles.listingImage} />
-      
-      <View style={styles.card}>
-        <Text style={styles.listingName}>{listing.name}</Text>
-        <Text style={styles.listingDetail}>Puzzle Type: <Text style={styles.detailValue}>{listing.puzzleType}</Text></Text>
-        <Text style={styles.listingDetail}>Price: <Text style={styles.detailValue}>${listing.price}</Text></Text>
-        <Text style={styles.listingDetail}>Usage: <Text style={styles.detailValue}>{listing.usage}</Text></Text>
-        <Text style={styles.listingDetail}>Description:</Text>
-        <Text style={styles.listingDescription}>{listing.description}</Text>
-        <Text style={styles.listingDetail}>Seller: <Text style={styles.detailValue}>{sellerUsername}</Text></Text>
-      </View>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView contentContainerStyle={styles.container}>
+          <Image source={{ uri: listing.imageUrl }} style={styles.listingImage} />
 
-      {/* Only show the Contact Seller button if the current user is not the seller */}
-      {listing.userId !== auth.currentUser?.uid && (
-        <Button title="Contact the Seller" onPress={handleContactSeller} color="#007BFF" />
-      )}
-    </ScrollView>
+          <View style={styles.card}>
+            <Text style={styles.listingName}>{listing.name}</Text>
+            <Text style={styles.listingDetail}>
+              Puzzle Type: <Text style={styles.detailValue}>{listing.puzzleType}</Text>
+            </Text>
+            <Text style={styles.listingDetail}>
+              Price: <Text style={styles.detailValue}>${listing.price}</Text>
+            </Text>
+            <Text style={styles.listingDetail}>
+              Usage: <Text style={styles.detailValue}>{listing.usage}</Text>
+            </Text>
+            <Text style={styles.listingDetail}>Description:</Text>
+            <TextInput
+              value={listing.description}
+              multiline
+              style={styles.listingDescriptionInput}
+              editable={false} // Make it non-editable unless required
+            />
+            <Text style={styles.listingDetail}>
+              Seller: <Text style={styles.detailValue}>{sellerUsername}</Text>
+            </Text>
+          </View>
+
+          {listing.userId !== auth.currentUser?.uid && (
+            <Button title="Contact the Seller" onPress={handleContactSeller} color="#007BFF" />
+          )}
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -170,10 +187,15 @@ const styles = StyleSheet.create({
   detailValue: {
     fontWeight: 'bold',
   },
-  listingDescription: {
+  listingDescriptionInput: {
     fontSize: 14,
     marginTop: 5,
     color: '#555',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: '#fff',
   },
 });
 
