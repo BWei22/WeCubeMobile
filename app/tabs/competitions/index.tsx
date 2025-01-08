@@ -135,6 +135,7 @@ const Competitions = () => {
             value={searchQuery}
             onChangeText={setSearchQuery}
             style={styles.searchInput}
+            returnKeyType="search"
           />
 
           <FlatList
