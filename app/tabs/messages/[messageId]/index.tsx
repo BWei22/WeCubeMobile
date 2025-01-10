@@ -1,14 +1,39 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, Button, ScrollView, ActivityIndicator, Image, StyleSheet, TouchableOpacity } from 'react-native'; 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  StyleSheet,
+  ActivityIndicator,
+  Keyboard,
+  TouchableWithoutFeedback,
+  LayoutAnimation,
+  Platform,
+  EmitterSubscription,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, collection, query, where, onSnapshot, addDoc, updateDoc, getDoc, orderBy, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../../../../firebase';  // Adjust this path as needed
+import {
+  doc,
+  collection,
+  query,
+  where,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  getDoc,
+  orderBy,
+  serverTimestamp,
+} from 'firebase/firestore';
+import { db, auth } from '../../../../firebase';
 
 interface Message {
   senderId: string;
   message: string;
   recipientId: string;
-  timestamp: any;  // Timestamp from Firebase
+  timestamp: any;
   isRead: boolean;
 }
 
@@ -19,8 +44,43 @@ const MessageScreen = () => {
   const [recipientId, setRecipientId] = useState('');
   const [recipientUsername, setRecipientUsername] = useState('');
   const [recipientProfilePicture, setRecipientProfilePicture] = useState<string | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isUserScrolling, setIsUserScrolling] = useState(false); // Track if the user is scrolling
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
+
+  // Synchronous Keyboard Movement
+  useEffect(() => {
+    let showListener: EmitterSubscription;
+    let hideListener: EmitterSubscription;
+
+    if (Platform.OS === 'ios') {
+      showListener = Keyboard.addListener('keyboardWillShow', (event) => {
+        setKeyboardHeight(event.endCoordinates.height - 114); // Adjust for navigation bar height
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      });
+
+      hideListener = Keyboard.addListener('keyboardWillHide', () => {
+        setKeyboardHeight(0);
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      });
+    } else {
+      showListener = Keyboard.addListener('keyboardDidShow', (event) => {
+        setKeyboardHeight(event.endCoordinates.height - 114);
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      });
+
+      hideListener = Keyboard.addListener('keyboardDidHide', () => {
+        setKeyboardHeight(0);
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      });
+    }
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!messageId) {
@@ -30,20 +90,19 @@ const MessageScreen = () => {
 
     const fetchConversationDetails = async () => {
       try {
-        // Fetch the conversation document to get the participants
         const conversationRef = doc(db, 'conversations', messageId as string);
         const conversationSnap = await getDoc(conversationRef);
+
         if (conversationSnap.exists()) {
           const conversationData = conversationSnap.data();
           const participants = conversationData.participants;
 
-          // Filter out the current user to get the other participant's ID
           const otherUserId = participants.find((id: string) => id !== auth.currentUser?.uid);
           setRecipientId(otherUserId);
 
-          // Fetch the recipient's username and profile picture
           const recipientDocRef = doc(db, 'users', otherUserId);
           const recipientDocSnap = await getDoc(recipientDocRef);
+
           if (recipientDocSnap.exists()) {
             setRecipientUsername(recipientDocSnap.data().username || 'Unknown');
             setRecipientProfilePicture(recipientDocSnap.data().photoURL || null);
@@ -60,22 +119,22 @@ const MessageScreen = () => {
       );
 
       const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-        const msgsData = snapshot.docs.map(doc => ({
+        const msgsData = snapshot.docs.map((doc) => ({
           senderId: doc.data().senderId,
           message: doc.data().message,
           recipientId: doc.data().recipientId,
           timestamp: doc.data().timestamp,
           isRead: doc.data().isRead,
         }));
-        setMsgs(msgsData);
-        scrollViewRef.current?.scrollToEnd({ animated: true });
+
+        setMsgs(msgsData); 
       });
 
       return () => unsubscribe();
     };
 
     fetchConversationDetails();
-  }, [messageId]);
+  }, [messageId, isUserScrolling]);
 
   const handleSendMessage = async () => {
     if (!auth.currentUser) {
@@ -84,12 +143,10 @@ const MessageScreen = () => {
     }
 
     try {
-      const currentRecipientId = recipientId;
-
       const messageData: Message = {
         senderId: auth.currentUser.uid,
         message: newMessage,
-        recipientId: currentRecipientId,
+        recipientId: recipientId,
         timestamp: serverTimestamp() as any,
         isRead: false,
       };
@@ -102,71 +159,86 @@ const MessageScreen = () => {
       const conversationRef = doc(db, 'conversations', messageId as string);
       await updateDoc(conversationRef, {
         lastMessage: messageData,
-        unreadBy: [currentRecipientId],
+        unreadBy: [recipientId],
       });
 
       setNewMessage('');
+      setIsUserScrolling(false); // Reset scrolling state
+      scrollViewRef.current?.scrollToEnd({ animated: true });
     } catch (error) {
       console.error('Error sending message: ', error);
     }
   };
 
-  if (!messageId) {
-    return (
-      <View style={styles.centeredContainer}>
-        <Text>No conversation selected</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
-      <View style={styles.profileHeader}>
-        {recipientProfilePicture ? (
-          <Image source={{ uri: recipientProfilePicture }} style={styles.profilePicture} />
-        ) : (
-          <View style={styles.profilePicturePlaceholder} />
-        )}
-        <Text style={styles.profileUsername}>{recipientUsername}</Text>
-      </View>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <View style={styles.profileHeader}>
+          {recipientProfilePicture ? (
+            <Image source={{ uri: recipientProfilePicture }} style={styles.profilePicture} />
+          ) : (
+            <View style={styles.profilePicturePlaceholder} />
+          )}
+          <Text style={styles.profileUsername}>{recipientUsername}</Text>
+        </View>
 
-      <ScrollView ref={scrollViewRef} style={styles.messageContainer}>
-        {msgs.length === 0 ? (
-          <ActivityIndicator size="large" color="#007BFF" />
-        ) : (
-          msgs.map((msg, index) => (
-            <View
-              key={index}
-              style={[
-                styles.messageBubble,
-                msg.senderId === auth.currentUser?.uid ? styles.sentMessage : styles.receivedMessage,
-              ]}
-            >
-              <Text style={styles.messageText}>{msg.message}</Text>
-              {msg.timestamp ? (
-                <Text style={styles.timestamp}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.messageContainer}
+          contentContainerStyle={{
+            paddingBottom: keyboardHeight + 60,
+            flexGrow: 1,
+          }}
+          onContentSizeChange={() => {
+            if (!isUserScrolling) {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            }
+          }}
+          onScrollBeginDrag={() => setIsUserScrolling(true)}
+          onScrollEndDrag={() => setIsUserScrolling(false)}
+          keyboardShouldPersistTaps="handled"
+        >
+          {msgs.length === 0 ? (
+            <ActivityIndicator size="large" color="#007BFF" />
+          ) : (
+            msgs.map((msg, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.messageBubble,
+                  msg.senderId === auth.currentUser?.uid ? styles.sentMessage : styles.receivedMessage,
+                ]}
+              >
+                <Text style={styles.messageText}>{msg.message}</Text>
+                {msg.timestamp ? (
+                  <Text style={styles.timestamp}>
                     {new Date(msg.timestamp.seconds * 1000).toLocaleTimeString()}
-                </Text>
-              ) : (
-                <Text style={styles.timestamp}>Time not available</Text>
-              )}
-            </View>
-          ))
-        )}
-      </ScrollView>
+                  </Text>
+                ) : (
+                  <Text style={styles.timestamp}>Time not available</Text>
+                )}
+              </View>
+            ))
+          )}
+        </ScrollView>
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          placeholder="Type a message..."
-          value={newMessage}
-          onChangeText={setNewMessage}
-          style={styles.textInput}
-        />
-        <TouchableOpacity onPress={handleSendMessage} disabled={!newMessage.trim()} style={styles.sendButton}>
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
+        <View style={[styles.inputContainer, { bottom: keyboardHeight }]}>
+          <TextInput
+            placeholder="Type a message..."
+            value={newMessage}
+            onChangeText={setNewMessage}
+            style={styles.textInput}
+          />
+          <TouchableOpacity
+            onPress={handleSendMessage}
+            disabled={!newMessage.trim()}
+            style={styles.sendButton}
+          >
+            <Text style={styles.sendButtonText}>Send</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -174,7 +246,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    padding: 10,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -202,7 +273,6 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     flex: 1,
-    paddingBottom: 20,
   },
   messageBubble: {
     marginVertical: 8,
@@ -232,6 +302,9 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   inputContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     padding: 10,
     borderTopWidth: 1,
@@ -259,11 +332,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  centeredContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 
