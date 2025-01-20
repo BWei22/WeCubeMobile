@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -10,11 +10,17 @@ import {
   Keyboard,
   StyleSheet,
   Platform,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true); // Enable LayoutAnimation on Android
+}
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
@@ -23,6 +29,21 @@ export default function SignUp() {
   const router = useRouter();
 
   const generateUsername = () => `user${Date.now()}`;
+
+  useEffect(() => {
+    const keyboardShowListener = Keyboard.addListener('keyboardWillShow', () => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    });
+
+    const keyboardHideListener = Keyboard.addListener('keyboardWillHide', () => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    });
+
+    return () => {
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
+    };
+  }, []);
 
   const handleSignUp = () => {
     createUserWithEmailAndPassword(auth, email, password)
@@ -51,32 +72,34 @@ export default function SignUp() {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
-          <Text style={styles.title}>Sign Up</Text>
+          <View style={styles.content}>
+            <Text style={styles.title}>Sign Up</Text>
 
-          <TextInput
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            style={styles.input}
-          />
+            <TextInput
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={styles.input}
+            />
 
-          <TextInput
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            style={styles.input}
-          />
+            <TextInput
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              style={styles.input}
+            />
 
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <Button title="Sign Up" onPress={handleSignUp} />
+            <Button title="Sign Up" onPress={handleSignUp} />
 
-          <TouchableOpacity onPress={() => router.replace('/login')} style={styles.link}>
-            <Text style={styles.linkText}>Already have an account? Login</Text>
-          </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.replace('/login')} style={styles.link}>
+              <Text style={styles.linkText}>Already have an account? Login</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -93,6 +116,10 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#fff',
   },
+  content: {
+    alignItems: 'center', 
+    justifyContent: 'center'
+  },
   title: {
     fontSize: 24,
     marginBottom: 20,
@@ -104,6 +131,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 5,
     borderColor: '#ccc',
+    width: '100%'
   },
   errorText: {
     color: 'red',
