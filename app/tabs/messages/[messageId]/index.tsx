@@ -45,7 +45,7 @@ const MessageScreen = () => {
   const [recipientUsername, setRecipientUsername] = useState('');
   const [recipientProfilePicture, setRecipientProfilePicture] = useState<string | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [isUserScrolling, setIsUserScrolling] = useState(false); // Track if the user is scrolling
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
 
@@ -56,7 +56,7 @@ const MessageScreen = () => {
 
     if (Platform.OS === 'ios') {
       showListener = Keyboard.addListener('keyboardWillShow', (event) => {
-        setKeyboardHeight(event.endCoordinates.height - 114); // Adjust for navigation bar height
+        setKeyboardHeight(event.endCoordinates.height - 114);
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       });
 
@@ -127,14 +127,14 @@ const MessageScreen = () => {
           isRead: doc.data().isRead,
         }));
 
-        setMsgs(msgsData); 
+        setMsgs(msgsData);
       });
 
       return () => unsubscribe();
     };
 
     fetchConversationDetails();
-  }, [messageId, isUserScrolling]);
+  }, [messageId]);
 
   const handleSendMessage = async () => {
     if (!auth.currentUser) {
@@ -163,7 +163,7 @@ const MessageScreen = () => {
       });
 
       setNewMessage('');
-      setIsUserScrolling(false); // Reset scrolling state
+      setIsUserScrolling(false);
       scrollViewRef.current?.scrollToEnd({ animated: true });
     } catch (error) {
       console.error('Error sending message: ', error);
@@ -171,7 +171,7 @@ const MessageScreen = () => {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+
       <View style={styles.container}>
         <View style={styles.profileHeader}>
           {recipientProfilePicture ? (
@@ -181,7 +181,7 @@ const MessageScreen = () => {
           )}
           <Text style={styles.profileUsername}>{recipientUsername}</Text>
         </View>
-
+            
         <ScrollView
           ref={scrollViewRef}
           style={styles.messageContainer}
@@ -189,6 +189,7 @@ const MessageScreen = () => {
             paddingBottom: keyboardHeight + 60,
             flexGrow: 1,
           }}
+          keyboardShouldPersistTaps="handled"
           onContentSizeChange={() => {
             if (!isUserScrolling) {
               scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -196,7 +197,6 @@ const MessageScreen = () => {
           }}
           onScrollBeginDrag={() => setIsUserScrolling(true)}
           onScrollEndDrag={() => setIsUserScrolling(false)}
-          keyboardShouldPersistTaps="handled"
         >
           {msgs.length === 0 ? (
             <ActivityIndicator size="large" color="#007BFF" />
@@ -238,7 +238,7 @@ const MessageScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-    </TouchableWithoutFeedback>
+
   );
 };
 
