@@ -9,7 +9,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   Keyboard,
-  TouchableWithoutFeedback,
   LayoutAnimation,
   Platform,
   EmitterSubscription,
@@ -171,74 +170,72 @@ const MessageScreen = () => {
   };
 
   return (
-
-      <View style={styles.container}>
-        <View style={styles.profileHeader}>
-          {recipientProfilePicture ? (
-            <Image source={{ uri: recipientProfilePicture }} style={styles.profilePicture} />
-          ) : (
-            <View style={styles.profilePicturePlaceholder} />
-          )}
-          <Text style={styles.profileUsername}>{recipientUsername}</Text>
-        </View>
-            
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.messageContainer}
-          contentContainerStyle={{
-            paddingBottom: keyboardHeight + 60,
-            flexGrow: 1,
-          }}
-          keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() => {
-            if (!isUserScrolling) {
-              scrollViewRef.current?.scrollToEnd({ animated: true });
-            }
-          }}
-          onScrollBeginDrag={() => setIsUserScrolling(true)}
-          onScrollEndDrag={() => setIsUserScrolling(false)}
-        >
-          {msgs.length === 0 ? (
-            <ActivityIndicator size="large" color="#007BFF" />
-          ) : (
-            msgs.map((msg, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.messageBubble,
-                  msg.senderId === auth.currentUser?.uid ? styles.sentMessage : styles.receivedMessage,
-                ]}
-              >
-                <Text style={styles.messageText}>{msg.message}</Text>
-                {msg.timestamp ? (
-                  <Text style={styles.timestamp}>
-                    {new Date(msg.timestamp.seconds * 1000).toLocaleTimeString()}
-                  </Text>
-                ) : (
-                  <Text style={styles.timestamp}>Time not available</Text>
-                )}
-              </View>
-            ))
-          )}
-        </ScrollView>
-
-        <View style={[styles.inputContainer, { bottom: keyboardHeight }]}>
-          <TextInput
-            placeholder="Type a message..."
-            value={newMessage}
-            onChangeText={setNewMessage}
-            style={styles.textInput}
-          />
-          <TouchableOpacity
-            onPress={handleSendMessage}
-            disabled={!newMessage.trim()}
-            style={styles.sendButton}
-          >
-            <Text style={styles.sendButtonText}>Send</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={styles.container}>
+      <View style={styles.profileHeader}>
+        {recipientProfilePicture ? (
+          <Image source={{ uri: recipientProfilePicture }} style={styles.profilePicture} />
+        ) : (
+          <View style={styles.profilePicturePlaceholder} />
+        )}
+        <Text style={styles.profileUsername}>{recipientUsername}</Text>
       </View>
+          
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.messageContainer}
+        contentContainerStyle={{
+          paddingBottom: keyboardHeight + 60,
+          flexGrow: 1,
+        }}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => {
+          if (!isUserScrolling) {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }
+        }}
+        onScrollBeginDrag={() => setIsUserScrolling(true)}
+        onScrollEndDrag={() => setIsUserScrolling(false)}
+      >
+        {msgs.length === 0 ? (
+          <ActivityIndicator size="large" color="#007BFF" />
+        ) : (
+          msgs.map((msg, index) => (
+            <View
+              key={index}
+              style={[
+                styles.messageBubble,
+                msg.senderId === auth.currentUser?.uid ? styles.sentMessage : styles.receivedMessage,
+              ]}
+            >
+              <Text style={styles.messageText}>{msg.message}</Text>
+              {msg.timestamp ? (
+                <Text style={styles.timestamp}>
+                  {new Date(msg.timestamp.seconds * 1000).toLocaleTimeString()}
+                </Text>
+              ) : (
+                <Text style={styles.timestamp}>Time not available</Text>
+              )}
+            </View>
+          ))
+        )}
+      </ScrollView>
 
+      <View style={[styles.inputContainer, { bottom: keyboardHeight }]}>
+        <TextInput
+          placeholder="Type a message..."
+          value={newMessage}
+          onChangeText={setNewMessage}
+          style={styles.textInput}
+        />
+        <TouchableOpacity
+          onPress={handleSendMessage}
+          disabled={!newMessage.trim()}
+          style={styles.sendButton}
+        >
+          <Text style={styles.sendButtonText}>Send</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
