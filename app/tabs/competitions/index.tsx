@@ -132,7 +132,7 @@ const Competitions = () => {
 
           <TextInput
             placeholder="Search Competitions"
-            placeholderTextColor="#666"
+            placeholderTextColor="#777"
             value={searchQuery}
             onChangeText={setSearchQuery}
             style={styles.searchInput}

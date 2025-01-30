@@ -223,7 +223,7 @@ const MessageScreen = () => {
       <View style={[styles.inputContainer, { bottom: keyboardHeight }]}>
         <TextInput
           placeholder="Type a message..."
-          placeholderTextColor="#666"
+          placeholderTextColor="#777"
           value={newMessage}
           onChangeText={setNewMessage}
           style={styles.textInput}

@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   lastMessage: {
     fontSize: 14,
-    color: '#666',
+    color: '#777',
   },
   separator: {
     height: 1,

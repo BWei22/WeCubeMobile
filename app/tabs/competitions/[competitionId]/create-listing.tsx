@@ -140,7 +140,7 @@ const CreateListing = () => {
           <View style={styles.card}>
             <TextInput
               placeholder="Puzzle Name"
-              placeholderTextColor="#666"
+              placeholderTextColor="#777"
               value={name}
               onChangeText={setName}
               style={styles.input}
@@ -179,7 +179,7 @@ const CreateListing = () => {
 
             <TextInput
               placeholder="Description (Optional)"
-              placeholderTextColor="#666"
+              placeholderTextColor="#777"
               value={description}
               onChangeText={setDescription}
               style={styles.input}
