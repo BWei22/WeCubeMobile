@@ -107,6 +107,7 @@ const ListingDetails = () => {
       });
     }
 
+    router.replace(`/tabs/messages/`);
     router.push(`/tabs/messages/${conversationId}`);
   };
 
