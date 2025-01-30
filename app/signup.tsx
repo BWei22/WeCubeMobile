@@ -15,11 +15,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db } from '../firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true); // Enable LayoutAnimation on Android
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 export default function SignUp() {
@@ -45,24 +45,28 @@ export default function SignUp() {
     };
   }, []);
 
-  const handleSignUp = () => {
-    createUserWithEmailAndPassword(auth, email, password)
-      .then(async (userCredential) => {
-        const user = userCredential.user;
+  const handleSignUp = async () => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-        const username = generateUsername();
+      const username = generateUsername();
 
-        await setDoc(doc(db, 'users', user.uid), {
-          email: user.email,
-          username: username,
-          createdAt: serverTimestamp(),
-        });
+      // Set display name for user
+      await updateProfile(user, { displayName: username });
 
-        router.replace('/');
-      })
-      .catch((error) => {
-        setError(error.message);
+      // Store user data in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        email: user.email,
+        username: username,
+        createdAt: serverTimestamp(),
       });
+
+      // 🚀 User is already logged in, so redirect them to home immediately
+      router.replace('/tabs/competitions');
+    } catch (error) {
+      setError(error.message);
+    }
   };
 
   return (
@@ -119,8 +123,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   content: {
-    alignItems: 'center', 
-    justifyContent: 'center'
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     fontSize: 24,
@@ -133,7 +137,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 5,
     borderColor: '#ccc',
-    width: '100%'
+    width: '100%',
   },
   errorText: {
     color: 'red',
@@ -147,3 +151,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
