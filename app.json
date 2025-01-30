@@ -2,7 +2,7 @@
   "expo": {
     "name": "WeCubeMobile",
     "slug": "WeCubeMobile",
-    "version": "1.0.2",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.wecubemobile.app",
-      "buildNumber": "5"
+      "buildNumber": "7"
     },
     "android": {
       "adaptiveIcon": {

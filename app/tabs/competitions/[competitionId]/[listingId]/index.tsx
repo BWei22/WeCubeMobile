@@ -1,21 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  Button,
-  Image,
-  ActivityIndicator,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Platform,
-} from 'react-native';
+import { View, Text, Button, Image, ActivityIndicator, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../../../../../firebase'; // Adjust this path as needed
+import { doc, getDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { db, auth } from '../../../../../firebase';  
 
 interface Listing {
   id: string;
@@ -29,9 +16,10 @@ interface Listing {
 }
 
 const ListingDetails = () => {
-  const { listingId } = useLocalSearchParams<{ listingId: string }>(); // Strongly type listingId
+  const { listingId } = useLocalSearchParams<{ listingId: string }>();
   const [listing, setListing] = useState<Listing | null>(null);
   const [sellerUsername, setSellerUsername] = useState('');
+  const [isOwner, setIsOwner] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -59,6 +47,8 @@ const ListingDetails = () => {
           } else {
             setSellerUsername('Unknown');
           }
+
+          setIsOwner(auth.currentUser?.uid === listingData.userId);
         }
       } catch (error) {
         console.error('Error fetching listing:', error);
@@ -67,6 +57,28 @@ const ListingDetails = () => {
 
     fetchListing();
   }, [listingId]);
+
+  const handleDeleteListing = async () => {
+    if (!isOwner) return;
+
+    Alert.alert('Delete Listing', 'Are you sure you want to delete this listing?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteDoc(doc(db, 'listings', listingId as string));
+            Alert.alert('Listing deleted successfully!');
+            router.back();
+          } catch (error) {
+            console.error('Error deleting listing:', error);
+            Alert.alert('Failed to delete listing. Please try again.');
+          }
+        },
+      },
+    ]);
+  };
 
   const handleContactSeller = async () => {
     if (!auth.currentUser) {
@@ -77,6 +89,8 @@ const ListingDetails = () => {
 
     const buyerId = auth.currentUser.uid;
     const sellerId = listing?.userId;
+
+    if (!sellerId) return;
 
     const sortedIds = [buyerId, sellerId].sort();
     const conversationId = `${sortedIds[0]}_${sortedIds[1]}`;
@@ -106,44 +120,26 @@ const ListingDetails = () => {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <Image source={{ uri: listing.imageUrl }} style={styles.listingImage} />
-
-          <View style={styles.card}>
-            <Text style={styles.listingName}>{listing.name}</Text>
-            <Text style={styles.listingDetail}>
-              Puzzle Type: <Text style={styles.detailValue}>{listing.puzzleType}</Text>
-            </Text>
-            <Text style={styles.listingDetail}>
-              Price: <Text style={styles.detailValue}>${listing.price}</Text>
-            </Text>
-            <Text style={styles.listingDetail}>
-              Usage: <Text style={styles.detailValue}>{listing.usage}</Text>
-            </Text>
-            <Text style={styles.listingDetail}>Description:</Text>
-            <TextInput
-              value={listing.description}
-              multiline
-              style={styles.listingDescriptionInput}
-              editable={false} // Make it non-editable unless required
-            />
-            <Text style={styles.listingDetail}>
-              Seller: <Text style={styles.detailValue}>{sellerUsername}</Text>
-            </Text>
-          </View>
-
-          {listing.userId !== auth.currentUser?.uid && (
-            <Button title="Contact the Seller" onPress={handleContactSeller} color="#007BFF" />
-          )}
-        </ScrollView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Image source={{ uri: listing.imageUrl }} style={styles.listingImage} />
+      <View style={styles.card}>
+        <Text style={styles.listingName}>{listing.name}</Text>
+        <Text style={styles.listingDetail}>Puzzle Type: <Text style={styles.detailValue}>{listing.puzzleType}</Text></Text>
+        <Text style={styles.listingDetail}>Price: <Text style={styles.detailValue}>${listing.price}</Text></Text>
+        <Text style={styles.listingDetail}>Usage: <Text style={styles.detailValue}>{listing.usage}</Text></Text>
+        <Text style={styles.listingDetail}>Description:</Text>
+        <Text style={styles.listingDescription}>{listing.description}</Text>
+        <Text style={styles.listingDetail}>Seller: <Text style={styles.detailValue}>{sellerUsername}</Text></Text>
+      </View>
+      
+      {isOwner && (
+        <Button title="Delete Listing" onPress={handleDeleteListing} color="#FF0000" />
+      )}
+      
+      {listing.userId !== auth.currentUser?.uid && (
+        <Button title="Contact the Seller" onPress={handleContactSeller} color="#007BFF" />
+      )}
+    </ScrollView>
   );
 };
 
@@ -187,15 +183,10 @@ const styles = StyleSheet.create({
   detailValue: {
     fontWeight: 'bold',
   },
-  listingDescriptionInput: {
+  listingDescription: {
     fontSize: 14,
     marginTop: 5,
     color: '#555',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    backgroundColor: '#fff',
   },
 });
 
