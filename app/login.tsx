@@ -66,6 +66,7 @@ export default function Login() {
 
             <TextInput
               placeholder="Email"
+              placeholderTextColor="#666"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -75,6 +76,7 @@ export default function Login() {
 
             <TextInput
               placeholder="Password"
+              placeholderTextColor="#666"
               value={password}
               onChangeText={setPassword}
               secureTextEntry

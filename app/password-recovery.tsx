@@ -64,6 +64,7 @@ export default function PasswordRecovery() {
 
             <TextInput
               placeholder="Enter your email"
+              placeholderTextColor="#666"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"

@@ -119,6 +119,7 @@ export default function ProfileScreen() {
 
           <TextInput
             placeholder="Username"
+            placeholderTextColor="#666"
             value={username}
             onChangeText={setUsername}
             style={styles.input}
