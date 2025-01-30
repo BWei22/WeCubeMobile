@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   TextInput,
-  Button,
   Text,
   ActivityIndicator,
   Alert,
@@ -79,7 +78,7 @@ const CreateListing = () => {
     }
 
     if (!name || !puzzleType || !price || !usage) {
-      Alert.alert("All fields except description must be filled out.");
+      Alert.alert("Please fill out all required fields!");
       return;
     }
 
@@ -138,63 +137,67 @@ const CreateListing = () => {
         <ScrollView contentContainerStyle={styles.container}>
           <Text style={styles.header}>Create a New Listing</Text>
 
-          <TextInput
-            placeholder="Puzzle Name"
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-          />
+          <View style={styles.card}>
+            <TextInput
+              placeholder="Puzzle Name"
+              value={name}
+              onChangeText={setName}
+              style={styles.input}
+            />
 
-          <Text style={styles.label}>Select Puzzle Type:</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={puzzleType}
-              onValueChange={(itemValue) => setPuzzleType(itemValue as string)}
-            >
-              {puzzleTypes.map((type, index) => (
-                <Picker.Item key={index} label={type} value={type} />
-              ))}
-            </Picker>
+            <Text style={styles.label}>Select Puzzle Type:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={puzzleType}
+                onValueChange={(itemValue) => setPuzzleType(itemValue as string)}
+              >
+                {puzzleTypes.map((type, index) => (
+                  <Picker.Item key={index} label={type} value={type} />
+                ))}
+              </Picker>
+            </View>
+
+            <TextInput
+              placeholder="Price"
+              value={`$${price}`}
+              onChangeText={handlePriceChange}
+              keyboardType="numeric"
+              style={styles.input}
+            />
+
+            <Text style={styles.label}>Select Usage:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={usage}
+                onValueChange={(itemValue) => setUsage(itemValue as string)}
+              >
+                {usageOptions.map((option, index) => (
+                  <Picker.Item key={index} label={option} value={option} />
+                ))}
+              </Picker>
+            </View>
+
+            <TextInput
+              placeholder="Description (Optional)"
+              value={description}
+              onChangeText={setDescription}
+              style={styles.input}
+              multiline
+              numberOfLines={4}
+            />
           </View>
-
-          <TextInput
-            placeholder="Price"
-            value={`$${price}`}
-            onChangeText={handlePriceChange}
-            keyboardType="numeric"
-            style={styles.input}
-          />
-
-          <Text style={styles.label}>Select Usage:</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={usage}
-              onValueChange={(itemValue) => setUsage(itemValue as string)}
-            >
-              {usageOptions.map((option, index) => (
-                <Picker.Item key={index} label={option} value={option} />
-              ))}
-            </Picker>
-          </View>
-
-          <TextInput
-            placeholder="Description (Optional)"
-            value={description}
-            onChangeText={setDescription}
-            style={styles.input}
-            multiline
-            numberOfLines={4}
-          />
 
           <TouchableOpacity onPress={handleImageChange} style={styles.imageButton}>
-            <Text style={styles.imageButtonText}>Choose Image</Text>
+            <Text style={styles.imageButtonText}>Upload Picture</Text>
           </TouchableOpacity>
           {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
 
           {loading ? (
-            <ActivityIndicator size="large" color="#0000ff" />
+            <ActivityIndicator size="large" color="#007BFF" />
           ) : (
-            <Button title="Submit Listing" onPress={handleSubmit} color="#007BFF" />
+            <TouchableOpacity onPress={handleSubmit}>
+              <Text style={styles.submitText}>Submit Listing</Text>
+            </TouchableOpacity>
           )}
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -209,45 +212,59 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
   },
   input: {
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
     padding: 10,
-    marginBottom: 20,
+    marginBottom: 15,
     fontSize: 16,
-    borderRadius: 5,
   },
   label: {
     fontSize: 16,
-    marginBottom: 10,
+    marginBottom: 5,
   },
   pickerContainer: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
-    marginBottom: 20,
+    marginBottom: 15,
   },
   imageButton: {
     backgroundColor: '#007BFF',
-    padding: 10,
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 20,
   },
   imageButtonText: {
     color: '#fff',
     fontSize: 16,
   },
   imagePreview: {
-    height: 100,
-    width: 100,
-    marginBottom: 20,
-    borderRadius: 5,
+    height: 150,
+    width: '100%',
+    marginTop: 10,
+    borderRadius: 10,
+  },
+  submitText: {
+    textAlign: 'center',
+    fontSize: 18,
+    color: '#007BFF',
+    marginTop: 20,
   },
 });
 
