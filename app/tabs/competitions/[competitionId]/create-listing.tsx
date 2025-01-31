@@ -6,10 +6,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Keyboard,
   Platform,
@@ -20,6 +18,7 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import { db, auth } from '../../../../firebase';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const puzzleTypes = [
   "3x3", "2x2", "4x4", "5x5", "6x6", "7x7",
@@ -129,80 +128,79 @@ const CreateListing = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.header}>Create a New Listing</Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAwareScrollView 
+        contentContainerStyle={styles.container} 
+        keyboardShouldPersistTaps="handled"
+        extraScrollHeight={Platform.OS === 'ios' ? 140 : 60} // Moves page up further when keyboard opens
+      >
+        <Text style={styles.header}>Create a New Listing</Text>
 
-          <View style={styles.card}>
-            <TextInput
-              placeholder="Puzzle Name"
-              placeholderTextColor="#777"
-              value={name}
-              onChangeText={setName}
-              style={styles.input}
-            />
+        <View style={styles.card}>
+          <TextInput
+            placeholder="Puzzle Name"
+            placeholderTextColor="#777"
+            value={name}
+            onChangeText={setName}
+            style={styles.input}
+          />
 
-            <Text style={styles.label}>Select Puzzle Type:</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={puzzleType}
-                onValueChange={(itemValue) => setPuzzleType(itemValue as string)}
-              >
-                {puzzleTypes.map((type, index) => (
-                  <Picker.Item key={index} label={type} value={type} />
-                ))}
-              </Picker>
-            </View>
-
-            <TextInput
-              value={`$${price}`}
-              onChangeText={handlePriceChange}
-              keyboardType="numeric"
-              style={styles.input}
-            />
-
-            <Text style={styles.label}>Select Usage:</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={usage}
-                onValueChange={(itemValue) => setUsage(itemValue as string)}
-              >
-                {usageOptions.map((option, index) => (
-                  <Picker.Item key={index} label={option} value={option} />
-                ))}
-              </Picker>
-            </View>
-
-            <TextInput
-              placeholder="Description (Optional)"
-              placeholderTextColor="#777"
-              value={description}
-              onChangeText={setDescription}
-              style={styles.input}
-              multiline
-              numberOfLines={4}
-            />
+          <Text style={styles.label}>Select Puzzle Type:</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={puzzleType}
+              onValueChange={(itemValue) => setPuzzleType(itemValue as string)}
+            >
+              {puzzleTypes.map((type, index) => (
+                <Picker.Item key={index} label={type} value={type} />
+              ))}
+            </Picker>
           </View>
 
-          <TouchableOpacity onPress={handleImageChange} style={styles.imageButton}>
-            <Text style={styles.imageButtonText}>Upload Picture</Text>
-          </TouchableOpacity>
-          {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
+          <TextInput
+            value={`$${price}`}
+            onChangeText={handlePriceChange}
+            keyboardType="numeric"
+            style={styles.input}
+          />
 
-          {loading ? (
-            <ActivityIndicator size="large" color="#007BFF" />
-          ) : (
-            <TouchableOpacity onPress={handleSubmit}>
-              <Text style={styles.submitText}>Submit Listing</Text>
-            </TouchableOpacity>
-          )}
-        </ScrollView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+          <Text style={styles.label}>Select Usage:</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={usage}
+              onValueChange={(itemValue) => setUsage(itemValue as string)}
+            >
+              {usageOptions.map((option, index) => (
+                <Picker.Item key={index} label={option} value={option} />
+              ))}
+            </Picker>
+          </View>
+
+          <TextInput
+            placeholder="Description (Optional)"
+            placeholderTextColor="#777"
+            value={description}
+            onChangeText={setDescription}
+            style={styles.input}
+            multiline
+            numberOfLines={4}
+          />
+        </View>
+
+        <TouchableOpacity onPress={handleImageChange} style={styles.imageButton}>
+          <Text style={styles.imageButtonText}>Upload Picture</Text>
+        </TouchableOpacity>
+        {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#007BFF" />
+        ) : (
+          <TouchableOpacity onPress={handleSubmit}>
+            <Text style={styles.submitText}>Submit Listing</Text>
+          </TouchableOpacity>
+        )}
+      </KeyboardAwareScrollView>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -250,10 +248,11 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     alignItems: 'center',
+    marginTop: 10,
   },
   imageButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 17,
   },
   imagePreview: {
     height: 150,
@@ -263,10 +262,11 @@ const styles = StyleSheet.create({
   },
   submitText: {
     textAlign: 'center',
-    fontSize: 18,
+    fontSize: 17,
     color: '#007BFF',
     marginTop: 20,
   },
 });
+
 
 export default CreateListing;
