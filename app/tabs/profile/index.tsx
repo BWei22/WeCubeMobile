@@ -20,7 +20,7 @@ import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-export default function ProfileScreen() {
+function ProfileScreen() {
   const [username, setUsername] = useState('');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -55,7 +55,7 @@ export default function ProfileScreen() {
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
-      aspect: [4, 3],
+      aspect: [1, 1],
       quality: 1,
     });
 
@@ -100,43 +100,45 @@ export default function ProfileScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
-          <Text style={styles.title}>Edit Profile</Text>
+        <View style={styles.inner}>
+          <View style={styles.content}>
+            <Text style={styles.title}>Edit Profile</Text>
 
-          <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-            {profilePicture ? (
-              <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
-            ) : (
-              <View style={styles.profilePicturePlaceholder}>
-                <Text style={styles.imagePickerText}>Select Profile Picture</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity onPress={pickImage} style={styles.profilePictureTouchable}>
+              {profilePicture ? (
+                <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
+              ) : (
+                <View style={styles.profilePicturePlaceholder}>
+                  <Text style={styles.imagePickerText}>+</Text>
+                </View>
+              )}
+            </TouchableOpacity>
 
-          <TextInput
-            placeholder="Username"
-            placeholderTextColor="#777"
-            value={username}
-            onChangeText={setUsername}
-            style={styles.input}
-            autoCapitalize="none"
-          />
+            <TextInput
+              placeholder="Username"
+              placeholderTextColor="#777"
+              value={username}
+              onChangeText={setUsername}
+              style={styles.input}
+              autoCapitalize="none"
+            />
 
-          <TouchableOpacity
-            style={[styles.saveButton, uploading && styles.disabledButton]}
-            onPress={handleSave}
-            disabled={uploading}
-          >
-            {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Save Changes</Text>}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.saveButton, uploading && styles.disabledButton]}
+              onPress={handleSave}
+              disabled={uploading}
+            >
+              {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Save Changes</Text>}
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Text style={styles.logoutButtonText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -146,8 +148,15 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  inner: {
+    flex: 1,
+    justifyContent: 'center',
     padding: 20,
     backgroundColor: '#f5f5f5',
+  },
+  content: {
+    alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
@@ -157,43 +166,42 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   input: {
-    padding: 12,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 8,
     marginBottom: 20,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+    padding: 10,
+    borderWidth: 1,
+    borderRadius: 5,
+    borderColor: '#ccc',
+    width: '100%',
+    backgroundColor: '#fff'
   },
-  profilePicture: {
+  profilePictureTouchable: {
+    alignSelf: 'center',
     width: 120,
     height: 120,
     borderRadius: 60,
-    marginBottom: 20,
+    overflow: 'hidden',
+    marginBottom: 25,
+  },
+  profilePicture: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
     borderWidth: 2,
     borderColor: '#007BFF',
   },
   profilePicturePlaceholder: {
-    width: 120,
-    height: 120,
+    width: '100%',
+    height: '100%',
     borderRadius: 60,
     backgroundColor: '#eee',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
     borderWidth: 2,
     borderColor: '#007BFF',
   },
-  imagePicker: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
   imagePickerText: {
+    fontSize: 24,
     color: '#007BFF',
-    fontSize: 16,
   },
   saveButton: {
     backgroundColor: '#007BFF',
@@ -201,11 +209,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 20,
+    width: '100%'
   },
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
   },
   disabledButton: {
     backgroundColor: '#007BFFAA',
@@ -215,10 +223,12 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
+    width: '100%'
   },
   logoutButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
   },
 });
+
+export default ProfileScreen;
