@@ -5,9 +5,9 @@ import {
   TextInput,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
-  Button,
   ActivityIndicator,
+  Image,
+  StyleSheet,
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Keyboard,
@@ -104,58 +104,72 @@ const Competitions = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#007BFF" />
         <Text>Loading competitions...</Text>
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
+          {/* View Toggle Buttons */}
           <View style={styles.viewToggle}>
-            <Button
-              title="Current"
+            <TouchableOpacity
+              style={[styles.viewButton, view === 'current' && styles.activeViewButton]}
               onPress={() => setView('current')}
-              color={view === 'current' ? 'blue' : 'gray'}
-            />
-            <Button
-              title="Past Month"
+            >
+              <Text style={[styles.viewButtonText, view === 'current' && styles.activeViewButtonText]}>Current</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.viewButton, view === 'past' && styles.activeViewButton]}
               onPress={() => setView('past')}
-              color={view === 'past' ? 'blue' : 'gray'}
-            />
+            >
+              <Text style={[styles.viewButtonText, view === 'past' && styles.activeViewButtonText]}>Past Month</Text>
+            </TouchableOpacity>
           </View>
 
-          <TextInput
-            placeholder="Search Competitions"
-            placeholderTextColor="#777"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={styles.searchInput}
-            returnKeyType="search"
-          />
-
-          <FlatList
-            data={sortedCompetitions}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.competitionItem} onPress={() => handleCompetitionClick(item.id)}>
-                <View style={styles.flagContainer}>
-                  <Flag code={item.country} size={32} />
-                </View>
-                <View style={styles.detailsContainer}>
-                  <Text style={styles.competitionName}>{item.name}</Text>
-                  <Text style={styles.competitionDate}>
-                    {formatDateRange(item.date.from, item.date.till)}
-                  </Text>
-                </View>
+          {/* Search Input */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              placeholder="Search Competitions"
+              placeholderTextColor="#777"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={styles.searchInput}
+              returnKeyType="search"
+            />
+            
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                <Text style={styles.clearIcon}>✕</Text>
               </TouchableOpacity>
             )}
-          />
+          </View>
+
+
+
+          {/* Competition List */}
+          {sortedCompetitions.length === 0 ? (
+            <View style={styles.noResultsContainer}>
+              <Text style={styles.noResultsText}>No competitions found.</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={sortedCompetitions}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.competitionCard} onPress={() => handleCompetitionClick(item.id)}>
+                  <Flag code={item.country} size={48} style={styles.flag} />
+                  <View style={styles.detailsContainer}>
+                    <Text style={styles.competitionName}>{item.name}</Text>
+                    <Text style={styles.competitionDate}>{formatDateRange(item.date.from, item.date.till)}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          )}
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -170,35 +184,71 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#fff',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   viewToggle: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
+    justifyContent: 'center',
+    marginBottom: 15,
   },
-  searchInput: {
-    padding: 10,
+  viewButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginHorizontal: 5,
+    backgroundColor: '#f0f0f0',
+  },
+  activeViewButton: {
+    backgroundColor: '#007BFF',
+  },
+  viewButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  activeViewButtonText: {
+    color: '#fff',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderColor: '#ccc',
     borderWidth: 1,
-    borderRadius: 5,
+    borderRadius: 8,
     marginBottom: 20,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
   },
-  competitionItem: {
+  searchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
+  
+  clearButton: {
+    padding: 8,
+    marginLeft: 5,
+    borderRadius: 15,
+    backgroundColor: '#ddd',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  clearIcon: {
+    fontSize: 14,
+    color: '#555',
+  },
+  
+  
+  competitionCard: {
     flexDirection: 'row',
     padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    borderRadius: 10,
+    backgroundColor: '#f9f9f9',
+    marginBottom: 10,
   },
-  flagContainer: {
+  flag: {
     marginRight: 15,
   },
   detailsContainer: {
     flex: 1,
-    justifyContent: 'center',
   },
   competitionName: {
     fontSize: 18,
@@ -207,4 +257,24 @@ const styles = StyleSheet.create({
   competitionDate: {
     color: '#777',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  
+  noResultsText: {
+    fontSize: 18,
+    color: '#777',
+    fontStyle: 'italic',
+  },
+  
 });
