@@ -19,11 +19,13 @@ import { updateProfile, signOut } from 'firebase/auth';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { AntDesign, MaterialIcons, Ionicons } from '@expo/vector-icons';
 
-function ProfileScreen() {
+const ProfileScreen = () => {
   const [username, setUsername] = useState('');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const router = useRouter();
   const user = auth.currentUser;
 
@@ -53,6 +55,8 @@ function ProfileScreen() {
   };
 
   const pickImage = async () => {
+    if (!isEditing) return;
+
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
       aspect: [1, 1],
@@ -82,11 +86,30 @@ function ProfileScreen() {
     try {
       await handleUsernameChange();
       await handleProfilePictureChange();
+      setIsEditing(false);
       Alert.alert('Success', 'Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
       Alert.alert('Error', 'There was an error updating the profile. Please try again.');
     }
+  };
+
+  const confirmLogout = () => {
+    Alert.alert(
+      "Confirm Logout",
+      "Are you sure you want to log out?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Logout",
+          onPress: handleLogout,
+          style: "destructive",
+        },
+      ]
+    );
   };
 
   const handleLogout = async () => {
@@ -106,10 +129,30 @@ function ProfileScreen() {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
-          <View style={styles.content}>
-            <Text style={styles.title}>Edit Profile</Text>
+          {/* Header with Edit, Save, and Cancel */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Profile</Text>
+            <View style={styles.actions}>
+              {isEditing ? (
+                <>
+                  <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
+                    {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Save</Text>}
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.cancelButton}>
+                    <Ionicons name="close-circle" size={24} color="#FF3B30" />
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity onPress={() => setIsEditing(true)}>
+                  <MaterialIcons name="edit" size={24} color="#007BFF" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
 
-            <TouchableOpacity onPress={pickImage} style={styles.profilePictureTouchable}>
+          {/* Profile Card */}
+          <View style={styles.card}>
+            <TouchableOpacity onPress={pickImage} style={styles.profilePictureTouchable} disabled={!isEditing}>
               {profilePicture ? (
                 <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
               ) : (
@@ -119,32 +162,32 @@ function ProfileScreen() {
               )}
             </TouchableOpacity>
 
-            <TextInput
-              placeholder="Username"
-              placeholderTextColor="#777"
-              value={username}
-              onChangeText={setUsername}
-              style={styles.input}
-              autoCapitalize="none"
-            />
+            {isEditing ? (
+              <TextInput
+                placeholder="Username"
+                placeholderTextColor="#777"
+                value={username}
+                onChangeText={setUsername}
+                style={styles.input}
+                autoCapitalize="none"
+              />
+            ) : (
+              <Text style={styles.usernameText}>{username}</Text>
+            )}
+          </View>
 
-            <TouchableOpacity
-              style={[styles.saveButton, uploading && styles.disabledButton]}
-              onPress={handleSave}
-              disabled={uploading}
-            >
-              {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Save Changes</Text>}
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          {/* Centered Logout Button (Hidden when Editing) */}
+          {!isEditing && (
+            <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout}>
+              <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
               <Text style={styles.logoutButtonText}>Logout</Text>
             </TouchableOpacity>
-          </View>
+          )}
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -156,79 +199,88 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f5f5f5',
   },
-  content: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 10,
   },
   title: {
     fontSize: 24,
-    marginBottom: 20,
-    textAlign: 'center',
+    fontWeight: 'bold',
     color: '#333',
   },
-  input: {
-    marginBottom: 20,
+  saveButton: {
+    backgroundColor: '#007BFF',
     padding: 10,
-    borderWidth: 1,
-    borderRadius: 5,
-    borderColor: '#ccc',
-    width: '100%',
-    backgroundColor: '#fff'
+    borderRadius: 8,
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    elevation: 5,
   },
   profilePictureTouchable: {
-    alignSelf: 'center',
     width: 120,
     height: 120,
     borderRadius: 60,
     overflow: 'hidden',
-    marginBottom: 25,
+    marginBottom: 15,
   },
   profilePicture: {
     width: '100%',
     height: '100%',
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: '#007BFF',
   },
   profilePicturePlaceholder: {
     width: '100%',
     height: '100%',
-    borderRadius: 60,
     backgroundColor: '#eee',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#007BFF',
   },
   imagePickerText: {
     fontSize: 24,
     color: '#007BFF',
   },
-  saveButton: {
-    backgroundColor: '#007BFF',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-    width: '100%'
+  input: {
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 5,
+    borderColor: '#ccc',
+    width: '100%',
+    textAlign: 'center',
   },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  disabledButton: {
-    backgroundColor: '#007BFFAA',
+  usernameText: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   logoutButton: {
-    backgroundColor: '#FF3B30',
-    padding: 15,
-    borderRadius: 8,
+    alignSelf: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    width: '100%'
+    marginTop: 30,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
   },
   logoutButtonText: {
-    color: '#fff',
+    marginLeft: 8,
+    color: '#FF3B30',
     fontSize: 16,
+  },
+  cancelButton: {
+    paddingHorizontal: 10,
   },
 });
 
