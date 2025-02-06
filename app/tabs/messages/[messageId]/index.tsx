@@ -21,12 +21,12 @@ import {
   where,
   onSnapshot,
   addDoc,
-  updateDoc,
   getDoc,
   orderBy,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db, auth } from '../../../../firebase';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Message {
   senderId: string;
@@ -48,7 +48,6 @@ const MessageScreen = () => {
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
 
-  // Synchronous Keyboard Movement
   useEffect(() => {
     let showListener: EmitterSubscription;
     let hideListener: EmitterSubscription;
@@ -136,10 +135,7 @@ const MessageScreen = () => {
   }, [messageId]);
 
   const handleSendMessage = async () => {
-    if (!auth.currentUser) {
-      console.error('User not authenticated');
-      return;
-    }
+    if (!auth.currentUser) return;
 
     try {
       const messageData: Message = {
@@ -155,12 +151,6 @@ const MessageScreen = () => {
         conversationId: messageId,
       });
 
-      const conversationRef = doc(db, 'conversations', messageId as string);
-      await updateDoc(conversationRef, {
-        lastMessage: messageData,
-        unreadBy: [recipientId],
-      });
-
       setNewMessage('');
       setIsUserScrolling(false);
       scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -169,8 +159,31 @@ const MessageScreen = () => {
     }
   };
 
+  const formatDate = (msgDate: Date): string => {
+    const now = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+
+    if (
+      msgDate.getDate() === now.getDate() &&
+      msgDate.getMonth() === now.getMonth() &&
+      msgDate.getFullYear() === now.getFullYear()
+    ) {
+      return 'Today';
+    } else if (
+      msgDate.getDate() === yesterday.getDate() &&
+      msgDate.getMonth() === yesterday.getMonth() &&
+      msgDate.getFullYear() === yesterday.getFullYear()
+    ) {
+      return 'Yesterday';
+    } else {
+      return msgDate.toLocaleDateString();
+    }
+  };
+
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.profileHeader}>
         {recipientProfilePicture ? (
           <Image source={{ uri: recipientProfilePicture }} style={styles.profilePicture} />
@@ -179,14 +192,12 @@ const MessageScreen = () => {
         )}
         <Text style={styles.profileUsername}>{recipientUsername}</Text>
       </View>
-          
+
+      {/* Messages List */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.messageContainer}
-        contentContainerStyle={{
-          paddingBottom: keyboardHeight + 60,
-          flexGrow: 1,
-        }}
+        contentContainerStyle={{ paddingBottom: keyboardHeight + 60, flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => {
           if (!isUserScrolling) {
@@ -199,27 +210,30 @@ const MessageScreen = () => {
         {msgs.length === 0 ? (
           <ActivityIndicator size="large" color="#007BFF" />
         ) : (
-          msgs.map((msg, index) => (
-            <View
-              key={index}
-              style={[
-                styles.messageBubble,
-                msg.senderId === auth.currentUser?.uid ? styles.sentMessage : styles.receivedMessage,
-              ]}
-            >
-              <Text style={styles.messageText}>{msg.message}</Text>
-              {msg.timestamp ? (
-                <Text style={styles.timestamp}>
-                  {new Date(msg.timestamp.seconds * 1000).toLocaleTimeString()}
-                </Text>
-              ) : (
-                <Text style={styles.timestamp}>Time not available</Text>
-              )}
-            </View>
-          ))
+          msgs.map((msg, index) => {
+            const msgDate = msg.timestamp?.seconds
+              ? new Date(msg.timestamp.seconds * 1000)
+              : new Date(); // Default to current time if timestamp is missing
+
+            const formattedTime = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const formattedDate = formatDate(msgDate);
+
+            const shouldShowDate =
+              index === 0 || new Date(msgs[index - 1].timestamp.seconds * 1000).getHours() !== msgDate.getHours();
+
+            return (
+              <View key={index}>
+                {shouldShowDate && <Text style={styles.dateIndicator}>{formattedDate} - {formattedTime}</Text>}
+                <View style={[styles.messageBubble, msg.senderId === auth.currentUser?.uid ? styles.sentMessage : styles.receivedMessage]}>
+                  <Text style={[styles.messageText, msg.senderId !== auth.currentUser?.uid && styles.receivedMessageText]}>{msg.message}</Text>
+                </View>
+              </View>
+            );
+          })
         )}
       </ScrollView>
 
+      {/* Input Field */}
       <View style={[styles.inputContainer, { bottom: keyboardHeight }]}>
         <TextInput
           placeholder="Type a message..."
@@ -228,109 +242,51 @@ const MessageScreen = () => {
           onChangeText={setNewMessage}
           style={styles.textInput}
         />
-        <TouchableOpacity
-          onPress={handleSendMessage}
-          disabled={!newMessage.trim()}
-          style={styles.sendButton}
-        >
-          <Text style={styles.sendButtonText}>Send</Text>
+        <TouchableOpacity onPress={handleSendMessage} disabled={!newMessage.trim()} style={styles.sendButton}>
+          <Ionicons name="send" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
+export default MessageScreen;
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  profilePicture: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  profileHeader: { flexDirection: 'row', alignItems: 'center', padding: 10, borderBottomWidth: 1, borderColor: '#ddd' },
+  profilePicture: { width: 40, height: 40, borderRadius: 20, marginHorizontal: 10 },
+  profileUsername: { fontSize: 18, fontWeight: 'bold' },
+  dateIndicator: { textAlign: 'center', color: '#777', marginVertical: 10 },
+  messageBubble: { padding: 12, borderRadius: 18, maxWidth: '75%', marginVertical: 5 },
+  sentMessage: { alignSelf: 'flex-end', backgroundColor: '#007BFF' },
+  receivedMessage: { alignSelf: 'flex-start', backgroundColor: '#E0E0E0' },
+  receivedMessageText: { color: '#000' },
+  textInput: { flex: 1, borderRadius: 20, paddingHorizontal: 15, backgroundColor: '#f5f5f5', height: 40 },
+  sendButton: { padding: 10, borderRadius: 20, backgroundColor: '#007BFF', marginLeft: 10 },
   profilePicturePlaceholder: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#eee',
-    marginRight: 10,
-  },
-  profileUsername: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    backgroundColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 10,
   },
   messageContainer: {
     flex: 1,
-  },
-  messageBubble: {
-    marginVertical: 8,
-    maxWidth: '80%',
-    borderRadius: 15,
-    padding: 10,
-  },
-  sentMessage: {
-    backgroundColor: '#DCF8C6',
-    alignSelf: 'flex-end',
-    borderTopRightRadius: 0,
-  },
-  receivedMessage: {
-    backgroundColor: '#fff',
-    alignSelf: 'flex-start',
-    borderTopLeftRadius: 0,
-    borderColor: '#ccc',
-    borderWidth: 1,
+    paddingHorizontal: 10,
   },
   messageText: {
     fontSize: 16,
-  },
-  timestamp: {
-    fontSize: 12,
-    color: '#888',
-    textAlign: 'right',
-    marginTop: 5,
+    color: '#fff',
   },
   inputContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
     flexDirection: 'row',
     padding: 10,
+    backgroundColor: '#fff',
+    alignItems: 'center',
     borderTopWidth: 1,
     borderColor: '#ddd',
-    backgroundColor: '#f9f9f9',
-  },
-  textInput: {
-    flex: 1,
-    height: 40,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    backgroundColor: '#fff',
-  },
-  sendButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#007BFF',
-    borderRadius: 20,
-    marginLeft: 10,
-    paddingHorizontal: 15,
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
-
-export default MessageScreen;
