@@ -11,6 +11,7 @@ import {
   Platform,
   LayoutAnimation,
   UIManager,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db } from '../firebase';
@@ -21,7 +22,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-export default function SignUp() {
+function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -70,67 +71,82 @@ export default function SignUp() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.inner}>
-          <Text style={styles.title}>Create an Account</Text>
-          <Text style={styles.subtitle}>Sign up to get started</Text>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.inner}>
+            {/* Title and Subtitle (Grouped for Sync Movement) */}
+            <View style={styles.headerContainer}>
+              <Text style={styles.title}>Create an Account</Text>
+              <Text style={styles.subtitle}>Sign up to get started</Text>
+            </View>
 
-          <TextInput
-            placeholder="Email"
-            placeholderTextColor="#aaa"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            style={styles.input}
-          />
+            {/* Input Fields */}
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor="#aaa"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={styles.input}
+            />
 
-          <TextInput
-            placeholder="Password"
-            placeholderTextColor="#aaa"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            style={styles.input}
-          />
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#aaa"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              style={styles.input}
+            />
 
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {/* Error Message */}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <TouchableOpacity onPress={handleSignUp} style={styles.signupButton}>
-            <Text style={styles.signupButtonText}>Sign Up</Text>
-          </TouchableOpacity>
+            {/* Sign Up Button */}
+            <TouchableOpacity onPress={handleSignUp} style={styles.signupButton}>
+              <Text style={styles.signupButtonText}>Sign Up</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.replace('/login')} style={styles.link}>
-            <Text style={styles.linkText}>
-              Already have an account? <Text style={styles.loginText}>Log In</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
+            {/* Links */}
+            <TouchableOpacity onPress={() => router.replace('/login')} style={styles.link}>
+              <Text style={styles.linkText}>
+                Already have an account? <Text style={styles.signupText}>Log In</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
 
+/* 💡 Matched Styles to the Login Page */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   inner: {
     flex: 1,
     justifyContent: 'center',
     padding: 25,
   },
+  headerContainer: {
+    alignItems: 'center', // Keeps title & subtitle centered
+    marginBottom: 30, // Provides space before inputs
+  },
   title: {
     fontSize: 26,
     fontWeight: 'bold',
     color: '#333',
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
-    textAlign: 'center',
-    marginBottom: 30,
   },
   input: {
     width: '100%',
@@ -176,9 +192,10 @@ const styles = StyleSheet.create({
     color: '#555',
     fontSize: 16,
   },
-  loginText: {
+  signupText: {
     color: '#007BFF',
     fontWeight: 'bold',
   },
 });
 
+export default SignUp;

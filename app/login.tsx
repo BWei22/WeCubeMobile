@@ -11,6 +11,7 @@ import {
   Platform,
   LayoutAnimation,
   UIManager,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth } from '../firebase';
@@ -20,7 +21,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-export default function Login() {
+function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -59,69 +60,86 @@ export default function Login() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.inner}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Log in to continue</Text>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.inner}>
+            {/* Title and Subtitle (Grouped for Sync Movement) */}
+            <View style={styles.headerContainer}>
+              <Text style={styles.title}>Welcome Back</Text>
+              <Text style={styles.subtitle}>Log in to continue</Text>
+            </View>
 
-          <TextInput
-            placeholder="Email"
-            placeholderTextColor="#aaa"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            style={styles.input}
-          />
+            {/* Input Fields */}
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor="#aaa"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={styles.input}
+            />
 
-          <TextInput
-            placeholder="Password"
-            placeholderTextColor="#aaa"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            style={styles.input}
-          />
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#aaa"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              style={styles.input}
+            />
 
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {/* Error Message */}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <TouchableOpacity onPress={handleLogin} style={styles.loginButton}>
-            <Text style={styles.loginButtonText}>Log In</Text>
-          </TouchableOpacity>
+            {/* Login Button */}
+            <TouchableOpacity onPress={handleLogin} style={styles.loginButton}>
+              <Text style={styles.loginButtonText}>Log In</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.replace('/password-recovery')} style={styles.link}>
-            <Text style={styles.linkText}>Forgot Password?</Text>
-          </TouchableOpacity>
+            {/* Links */}
+            <TouchableOpacity onPress={() => router.replace('/password-recovery')} style={styles.link}>
+              <Text style={styles.linkText}>Forgot Password?</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.replace('/signup')} style={styles.link}>
-            <Text style={styles.linkText}>Don't have an account? <Text style={styles.signupText}>Sign Up</Text></Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity onPress={() => router.replace('/signup')} style={styles.link}>
+              <Text style={styles.linkText}>
+                Don't have an account? <Text style={styles.signupText}>Sign Up</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
 
+/* 💡 Updated Styles with Grouped Header */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   inner: {
     flex: 1,
     justifyContent: 'center',
     padding: 25,
   },
+  headerContainer: {
+    alignItems: 'center', // Keeps title & subtitle centered
+    marginBottom: 30, // Provides space before inputs
+  },
   title: {
     fontSize: 26,
     fontWeight: 'bold',
     color: '#333',
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
-    textAlign: 'center',
-    marginBottom: 30,
   },
   input: {
     width: '100%',
@@ -173,3 +191,4 @@ const styles = StyleSheet.create({
   },
 });
 
+export default Login;

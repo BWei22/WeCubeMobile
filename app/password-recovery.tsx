@@ -11,6 +11,7 @@ import {
   Platform,
   LayoutAnimation,
   UIManager,
+  ScrollView,
 } from 'react-native';
 import { auth } from '../firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
@@ -20,7 +21,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-export default function PasswordRecovery() {
+function PasswordRecovery() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -65,61 +66,77 @@ export default function PasswordRecovery() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.inner}>
-          <Text style={styles.title}>Forgot Your Password?</Text>
-          <Text style={styles.subtitle}>
-            Enter your email below and we'll send you a password reset link.
-          </Text>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.inner}>
+            {/* Title and Subtitle (Grouped for Sync Movement) */}
+            <View style={styles.headerContainer}>
+              <Text style={styles.title}>Forgot Your Password?</Text>
+              <Text style={styles.subtitle}>
+                Enter your email below and we'll send you a password reset link.
+              </Text>
+            </View>
 
-          <TextInput
-            placeholder="Enter your email"
-            placeholderTextColor="#aaa"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            style={styles.input}
-          />
+            {/* Input Field */}
+            <TextInput
+              placeholder="Enter your email"
+              placeholderTextColor="#aaa"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={styles.input}
+            />
 
-          {message ? <Text style={styles.successText}>{message}</Text> : null}
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {/* Success & Error Messages */}
+            {message ? <Text style={styles.successText}>{message}</Text> : null}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <TouchableOpacity onPress={handlePasswordRecovery} style={styles.resetButton}>
-            <Text style={styles.resetButtonText}>Send Reset Email</Text>
-          </TouchableOpacity>
+            {/* Reset Password Button */}
+            <TouchableOpacity onPress={handlePasswordRecovery} style={styles.resetButton}>
+              <Text style={styles.resetButtonText}>Send Reset Email</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.replace('/login')} style={styles.link}>
-            <Text style={styles.linkText}>
-              <Text style={styles.backToLoginText}>⬅ Back to Login</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
+            {/* Back to Login Link */}
+            <TouchableOpacity onPress={() => router.replace('/login')} style={styles.link}>
+              <Text style={styles.linkText}>
+                <Text style={styles.backToLoginText}>⬅ Back to Login</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
 
+/* 💡 Matched Styles to Login & Sign Up Pages */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   inner: {
     flex: 1,
     justifyContent: 'center',
     padding: 25,
   },
+  headerContainer: {
+    alignItems: 'center', // Keeps title & subtitle centered
+    marginBottom: 30, // Provides space before inputs
+  },
   title: {
     fontSize: 26,
     fontWeight: 'bold',
     color: '#333',
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
-    marginBottom: 30,
   },
   input: {
     width: '100%',
@@ -177,3 +194,4 @@ const styles = StyleSheet.create({
   },
 });
 
+export default PasswordRecovery;
