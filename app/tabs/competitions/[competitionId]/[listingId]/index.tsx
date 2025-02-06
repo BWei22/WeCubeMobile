@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, Image, ActivityIndicator, StyleSheet, ScrollView, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  ActivityIndicator,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  TouchableOpacity,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
-import { db, auth } from '../../../../../firebase';  
+import { db, auth } from '../../../../../firebase';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Listing {
   id: string;
@@ -114,7 +124,7 @@ const ListingDetails = () => {
   if (!listing) {
     return (
       <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#007BFF" />
         <Text>Loading listing details...</Text>
       </View>
     );
@@ -123,23 +133,32 @@ const ListingDetails = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Image source={{ uri: listing.imageUrl }} style={styles.listingImage} />
+      
       <View style={styles.card}>
         <Text style={styles.listingName}>{listing.name}</Text>
-        <Text style={styles.listingDetail}>Puzzle Type: <Text style={styles.detailValue}>{listing.puzzleType}</Text></Text>
         <Text style={styles.listingDetail}>Price: <Text style={styles.detailValue}>${listing.price}</Text></Text>
+        <Text style={styles.listingDetail}>Puzzle Type: <Text style={styles.detailValue}>{listing.puzzleType}</Text></Text>
         <Text style={styles.listingDetail}>Usage: <Text style={styles.detailValue}>{listing.usage}</Text></Text>
         <Text style={styles.listingDetail}>Description:</Text>
         <Text style={styles.listingDescription}>{listing.description}</Text>
-        <Text style={styles.listingDetail}>Seller: <Text style={styles.detailValue}>{sellerUsername}</Text></Text>
       </View>
-      
-      {isOwner && (
-        <Button title="Delete Listing" onPress={handleDeleteListing} color="#FF0000" />
-      )}
-      
-      {listing.userId !== auth.currentUser?.uid && (
-        <Button title="Contact the Seller" onPress={handleContactSeller} color="#007BFF" />
-      )}
+
+      <View style={styles.sellerInfo}>
+        <Ionicons name="person-circle" size={50} color="#007BFF" />
+        <Text style={styles.sellerName}>Sold by: {sellerUsername}</Text>
+      </View>
+
+      <View style={styles.buttonContainer}>
+        {isOwner ? (
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteListing}>
+            <Text style={styles.deleteButtonText}>Delete Listing</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.contactButton} onPress={handleContactSeller}>
+            <Text style={styles.contactButtonText}>Contact Seller</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </ScrollView>
   );
 };
@@ -147,7 +166,7 @@ const ListingDetails = () => {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
   },
   centeredContainer: {
     flex: 1,
@@ -155,10 +174,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   card: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
+    backgroundColor: '#fff',
+    borderRadius: 12,
     padding: 20,
-    marginVertical: 20,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
@@ -167,12 +186,13 @@ const styles = StyleSheet.create({
   },
   listingImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 10,
+    height: 250,
+    borderRadius: 12,
     marginBottom: 20,
+    resizeMode: 'cover',
   },
   listingName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
@@ -180,14 +200,56 @@ const styles = StyleSheet.create({
   listingDetail: {
     fontSize: 16,
     marginBottom: 5,
+    color: '#555',
   },
   detailValue: {
     fontWeight: 'bold',
+    color: '#333',
   },
   listingDescription: {
     fontSize: 14,
     marginTop: 5,
-    color: '#555',
+    color: '#666',
+    lineHeight: 20,
+  },
+  sellerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  sellerName: {
+    fontSize: 16,
+    marginLeft: 10,
+    color: '#007BFF',
+    fontWeight: 'bold',
+  },
+  buttonContainer: {
+    alignItems: 'center',
+  },
+  deleteButton: {
+    backgroundColor: '#FF3B30',
+    padding: 12,
+    borderRadius: 25,
+    width: '80%',
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  contactButton: {
+    backgroundColor: '#007BFF',
+    padding: 12,
+    borderRadius: 25,
+    width: '80%',
+    alignItems: 'center',
+  },
+  contactButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
