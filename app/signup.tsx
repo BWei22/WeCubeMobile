@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   TextInput,
-  Button,
   Text,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -49,20 +48,16 @@ export default function SignUp() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
       const username = generateUsername();
 
-      // Set display name for user
       await updateProfile(user, { displayName: username });
 
-      // Store user data in Firestore
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
         username: username,
         createdAt: serverTimestamp(),
       });
 
-      // 🚀 User is already logged in, so redirect them to home immediately
       router.replace('/tabs/competitions');
     } catch (error) {
       setError(error.message);
@@ -76,36 +71,39 @@ export default function SignUp() {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
-          <View style={styles.content}>
-            <Text style={styles.title}>Sign Up</Text>
+          <Text style={styles.title}>Create an Account</Text>
+          <Text style={styles.subtitle}>Sign up to get started</Text>
 
-            <TextInput
-              placeholder="Email"
-              placeholderTextColor="#777"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={styles.input}
-            />
+          <TextInput
+            placeholder="Email"
+            placeholderTextColor="#aaa"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            style={styles.input}
+          />
 
-            <TextInput
-              placeholder="Password"
-              placeholderTextColor="#777"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              style={styles.input}
-            />
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor="#aaa"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            style={styles.input}
+          />
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            <Button title="Sign Up" onPress={handleSignUp} />
+          <TouchableOpacity onPress={handleSignUp} style={styles.signupButton}>
+            <Text style={styles.signupButtonText}>Sign Up</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => router.replace('/login')} style={styles.link}>
-              <Text style={styles.linkText}>Already have an account? Login</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPress={() => router.replace('/login')} style={styles.link}>
+            <Text style={styles.linkText}>
+              Already have an account? <Text style={styles.loginText}>Log In</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -115,40 +113,72 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   inner: {
     flex: 1,
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  content: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 25,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 20,
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#333',
     textAlign: 'center',
   },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
   input: {
-    marginBottom: 20,
-    padding: 10,
-    borderWidth: 1,
-    borderRadius: 5,
-    borderColor: '#ccc',
     width: '100%',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 25,
+    backgroundColor: '#fff',
+    marginBottom: 15,
+    fontSize: 16,
+    color: '#333',
   },
   errorText: {
     color: 'red',
-    marginBottom: 20,
+    marginBottom: 10,
+    textAlign: 'center',
+    fontSize: 14,
+  },
+  signupButton: {
+    backgroundColor: '#007BFF',
+    paddingVertical: 15,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  signupButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   link: {
-    marginTop: 20,
+    marginTop: 15,
+    alignItems: 'center',
   },
   linkText: {
-    color: 'blue',
-    textAlign: 'center',
+    color: '#555',
+    fontSize: 16,
+  },
+  loginText: {
+    color: '#007BFF',
+    fontWeight: 'bold',
   },
 });
 

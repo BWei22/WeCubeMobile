@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   TextInput,
-  Button,
   Text,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -10,15 +9,15 @@ import {
   Keyboard,
   StyleSheet,
   Platform,
-  LayoutAnimation, 
-  UIManager
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import { auth } from '../firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true); // Enable LayoutAnimation on Android
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 export default function PasswordRecovery() {
@@ -43,12 +42,20 @@ export default function PasswordRecovery() {
   }, []);
 
   const handlePasswordRecovery = () => {
+    setMessage('');
+    setError('');
+
+    if (!email.trim()) {
+      setError('Please enter your email.');
+      return;
+    }
+
     sendPasswordResetEmail(auth, email)
       .then(() => {
-        setMessage('Password reset email sent!');
+        setMessage('📩 Password reset email sent! Check your inbox.');
       })
       .catch((error) => {
-        setError(error.message);
+        setError('❌ ' + error.message);
       });
   };
 
@@ -59,28 +66,33 @@ export default function PasswordRecovery() {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
-          <View style={styles.content}>
-            <Text style={styles.title}>Password Recovery</Text>
+          <Text style={styles.title}>Forgot Your Password?</Text>
+          <Text style={styles.subtitle}>
+            Enter your email below and we'll send you a password reset link.
+          </Text>
 
-            <TextInput
-              placeholder="Enter your email"
-              placeholderTextColor="#777"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={styles.input}
-            />
+          <TextInput
+            placeholder="Enter your email"
+            placeholderTextColor="#aaa"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            style={styles.input}
+          />
 
-            {message ? <Text style={styles.successText}>{message}</Text> : null}
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {message ? <Text style={styles.successText}>{message}</Text> : null}
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            <Button title="Reset Password" onPress={handlePasswordRecovery} />
+          <TouchableOpacity onPress={handlePasswordRecovery} style={styles.resetButton}>
+            <Text style={styles.resetButtonText}>Send Reset Email</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => router.push('/login')} style={styles.link}>
-              <Text style={styles.linkText}>Back to Login</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPress={() => router.replace('/login')} style={styles.link}>
+            <Text style={styles.linkText}>
+              <Text style={styles.backToLoginText}>⬅ Back to Login</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -90,43 +102,78 @@ export default function PasswordRecovery() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   inner: {
     flex: 1,
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  content: {
-    alignItems: 'center', 
-    justifyContent: 'center'
+    padding: 25,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 20,
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#333',
     textAlign: 'center',
   },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
   input: {
-    marginBottom: 20,
-    padding: 10,
+    width: '100%',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
     borderWidth: 1,
-    borderRadius: 5,
-    borderColor: '#ccc',
-    width: '100%'
+    borderColor: '#ddd',
+    borderRadius: 25,
+    backgroundColor: '#fff',
+    marginBottom: 15,
+    fontSize: 16,
+    color: '#333',
   },
   successText: {
     color: 'green',
-    marginBottom: 20,
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 15,
   },
   errorText: {
     color: 'red',
-    marginBottom: 20,
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  resetButton: {
+    backgroundColor: '#007BFF',
+    paddingVertical: 15,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  resetButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   link: {
-    marginTop: 20,
+    marginTop: 15,
+    alignItems: 'center',
   },
   linkText: {
-    color: 'blue',
-    textAlign: 'center',
+    color: '#555',
+    fontSize: 16,
+  },
+  backToLoginText: {
+    color: '#007BFF',
+    fontWeight: 'bold',
   },
 });
+
