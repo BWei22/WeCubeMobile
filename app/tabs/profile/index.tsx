@@ -16,7 +16,7 @@ import {
 import { useRouter } from 'expo-router';
 import { auth, db, storage } from '../../../firebase.js';
 import { updateProfile, signOut } from 'firebase/auth';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { query, collection, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { AntDesign, MaterialIcons, Ionicons } from '@expo/vector-icons';
@@ -47,12 +47,12 @@ const ProfileScreen = () => {
     fetchUserProfile();
   }, []);
 
-  const handleUsernameChange = async () => {
-    if (user && username) {
-      await updateProfile(user, { displayName: username });
-      await updateDoc(doc(db, 'users', user.uid), { username });
-    }
+  const isValidUsername = (username) => {
+    const usernameRegex = /^(?![_])\w{3,20}(?<![_])$/; 
+    return usernameRegex.test(username);
   };
+  
+  const bannedUsernames = ["admin", "support", "moderator"]; 
 
   const pickImage = async () => {
     if (!isEditing) return;
@@ -69,31 +69,111 @@ const ProfileScreen = () => {
   };
 
   const handleProfilePictureChange = async () => {
-    if (user && profilePicture) {
+    if (!user || !profilePicture) return;
+  
+    try {
+      console.log("🚀 Starting profile picture update...");
+      console.log("📂 Current image URI:", profilePicture);
+  
       setUploading(true);
+  
+      // Prevent fetching a Firebase Storage URL
+      if (profilePicture.startsWith("https://")) {
+        console.warn("⚠️ Skipping upload - Profile picture is already uploaded:", profilePicture);
+        setUploading(false);
+        return;
+      }
+  
+      // Fetch image and convert to Blob
       const response = await fetch(profilePicture);
       const blob = await response.blob();
-      const storageRef = ref(storage, `profilePictures/${user.uid}`);
+      console.log("✅ Blob created successfully");
+  
+      // Upload image to Firebase Storage
+      const storageRef = ref(storage, `profilePictures/${user.uid}-${Date.now()}`);
       await uploadBytes(storageRef, blob);
+      console.log("✅ Upload successful");
+  
+      // Get the download URL
       const photoURL = await getDownloadURL(storageRef);
+      console.log("🌐 Download URL obtained:", photoURL);
+  
+      // Update Firebase Auth profile
       await updateProfile(user, { photoURL });
-      await updateDoc(doc(db, 'users', user.uid), { photoURL });
+      console.log("✅ Firebase Auth profile updated");
+  
+      // Update Firestore user document
+      await updateDoc(doc(db, "users", user.uid), { photoURL });
+      console.log("✅ Firestore user document updated");
+  
+      // **Update state only with a valid uploaded URL**
+      setProfilePicture(photoURL);
+      console.log("🎉 Profile picture state updated");
+  
+      setUploading(false);
+      console.log("🏁 Finished profile picture update");
+    } catch (error) {
+      console.error("❌ Error updating profile picture:", error);
+      Alert.alert("Error", "Failed to update profile picture. Please try again.");
       setUploading(false);
     }
   };
-
+  
+  
   const handleSave = async () => {
-    try {
-      await handleUsernameChange();
-      await handleProfilePictureChange();
-      setIsEditing(false);
-      Alert.alert('Success', 'Profile updated successfully!');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      Alert.alert('Error', 'There was an error updating the profile. Please try again.');
+    if (!user) return;
+    
+    // **Step 1: Validate Username First**
+    const trimmedUsername = username.trim().toLowerCase();
+  
+    if (!trimmedUsername) {
+      Alert.alert("Error", "Username cannot be empty.");
+      return;
     }
+  
+    if (!isValidUsername(trimmedUsername)) {
+      Alert.alert("Error", "Username must be 3-20 characters and contain only letters, numbers, and underscores.");
+      return;
+    }
+  
+    if (bannedUsernames.includes(trimmedUsername)) {
+      Alert.alert("Error", "This username is not allowed. Please choose another.");
+      return;
+    }
+  
+    try {
+      console.log("🔍 Checking if username is taken...");
+  
+      const usernameQuery = query(collection(db, "users"), where("username", "==", trimmedUsername));
+      const querySnapshot = await getDocs(usernameQuery);
+  
+      const isTaken = querySnapshot.docs.some(doc => doc.id !== user.uid);
+      if (isTaken) {
+        Alert.alert("Error", "Username is already taken. Please choose another.");
+        return;
+      }
+  
+      // ✅ **Step 2: Update Username** (if no validation errors)
+      console.log("✅ Username is valid, updating...");
+      await updateProfile(user, { displayName: trimmedUsername });
+      await updateDoc(doc(db, "users", user.uid), { username: trimmedUsername });
+  
+      Alert.alert("Success", "Username updated successfully!");
+      console.log("🏁 Username update complete!");
+  
+    } catch (error) {
+      Alert.alert("Error", "Failed to update username. Please try again.");
+      return;
+    }
+  
+    // ✅ **Step 3: Only Proceed with Profile Picture Update if Username was Successful**
+    if (profilePicture) {
+      await handleProfilePictureChange();
+    }
+  
+    setIsEditing(false);
   };
-
+  
   const confirmLogout = () => {
     Alert.alert(
       "Confirm Logout",
