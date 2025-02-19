@@ -210,43 +210,44 @@ const MessageScreen = () => {
 
       {/* Messages List */}
       <ScrollView
-        ref={scrollViewRef}
-        style={styles.messageContainer}
-        contentContainerStyle={{ paddingBottom: keyboardHeight + 60, flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-        onContentSizeChange={() => {
-          if (!isUserScrolling) {
-            scrollViewRef.current?.scrollToEnd({ animated: true });
-          }
-        }}
-        onScrollBeginDrag={() => setIsUserScrolling(true)}
-        onScrollEndDrag={() => setIsUserScrolling(false)}
-      >
-        {msgs.length === 0 ? (
-          <ActivityIndicator size="large" color="#007BFF" />
-        ) : (
-          msgs.map((msg, index) => {
-            const msgDate = msg.timestamp?.seconds
-              ? new Date(msg.timestamp.seconds * 1000)
-              : new Date(); // Default to current time if timestamp is missing
+  ref={scrollViewRef}
+  style={styles.messageContainer}
+  contentContainerStyle={{ paddingBottom: keyboardHeight + 60, flexGrow: 1 }}
+  keyboardShouldPersistTaps="handled"
+  onContentSizeChange={() => {
+    if (!isUserScrolling) {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }
+  }}
+  onScrollBeginDrag={() => setIsUserScrolling(true)}
+  onScrollEndDrag={() => setIsUserScrolling(false)}
+>
+  {msgs.length === 0 ? (
+    <Text style={styles.noMessagesText}>No messages yet. Start the conversation!</Text>
+  ) : (
+    msgs.map((msg, index) => {
+      const msgDate = msg.timestamp?.seconds
+        ? new Date(msg.timestamp.seconds * 1000)
+        : new Date(); // Default to current time if timestamp is missing
 
-            const formattedTime = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const formattedDate = formatDate(msgDate);
+      const formattedTime = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const formattedDate = formatDate(msgDate);
 
-            const shouldShowDate =
-              index === 0 || new Date(msgs[index - 1].timestamp.seconds * 1000).getHours() !== msgDate.getHours();
+      const shouldShowDate =
+        index === 0 || new Date(msgs[index - 1].timestamp.seconds * 1000).getHours() !== msgDate.getHours();
 
-            return (
-              <View key={index}>
-                {shouldShowDate && <Text style={styles.dateIndicator}>{formattedDate} - {formattedTime}</Text>}
-                <View style={[styles.messageBubble, msg.senderId === auth.currentUser?.uid ? styles.sentMessage : styles.receivedMessage]}>
-                  <Text style={[styles.messageText, msg.senderId !== auth.currentUser?.uid && styles.receivedMessageText]}>{msg.message}</Text>
-                </View>
-              </View>
-            );
-          })
-        )}
-      </ScrollView>
+      return (
+        <View key={index}>
+          {shouldShowDate && <Text style={styles.dateIndicator}>{formattedDate} - {formattedTime}</Text>}
+          <View style={[styles.messageBubble, msg.senderId === auth.currentUser?.uid ? styles.sentMessage : styles.receivedMessage]}>
+            <Text style={[styles.messageText, msg.senderId !== auth.currentUser?.uid && styles.receivedMessageText]}>{msg.message}</Text>
+          </View>
+        </View>
+      );
+    })
+  )}
+</ScrollView>
+
 
       {/* Input Field */}
       <View style={[styles.inputContainer, { bottom: keyboardHeight }]}>
@@ -304,4 +305,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: '#ddd',
   },
+  noMessagesText: {
+    textAlign: 'center',
+    color: '#888',
+    fontSize: 16,
+    fontStyle: 'italic',
+    marginTop: 20,
+  }  
 });
