@@ -8,11 +8,10 @@ import {
   Image,
   StyleSheet,
 } from 'react-native';
-import { collection, query, where, onSnapshot, getDoc, doc, updateDoc } from 'firebase/firestore';
-import { db, auth } from '../../../firebase'; // Adjust path as needed
+import { collection, query, where, onSnapshot, getDoc, doc, updateDoc, getDocs, orderBy, limit } from 'firebase/firestore';
+import { db, auth } from '../../../firebase'; 
 import { useRouter } from 'expo-router';
 
-// Define the Conversation Interface
 interface Conversation {
   id: string;
   participants: string[];
@@ -24,7 +23,6 @@ interface Conversation {
   };
 }
 
-// Define the User Interface
 interface User {
   username: string;
   photoURL: string;
@@ -52,9 +50,29 @@ const Messages = () => {
         const data = docSnapshot.data() as Conversation;
         const conversationData = { ...data, id: docSnapshot.id };
 
+        if (!data.lastMessage || !data.lastMessage.message) { 
+          const messagesQuery = query(
+            collection(db, "messages"),
+            where("conversationId", "==", docSnapshot.id),
+            orderBy("timestamp", "desc"),
+            limit(1)
+          );
+        
+          const messagesSnapshot = await getDocs(messagesQuery);
+          
+          if (!messagesSnapshot.empty) {
+            const lastMessageData = messagesSnapshot.docs[0].data();
+            conversationData.lastMessage = lastMessageData as {
+              message: string;
+              senderId: string;
+              timestamp: any;
+              isRead?: boolean;
+            };
+          }
+        }        
+
         convos.push(conversationData);
 
-        // Get the other participant's info
         const otherParticipantId = data.participants.find(id => id !== auth.currentUser?.uid);
         if (otherParticipantId && !usernamesMap[otherParticipantId]) {
           const userDocRef = doc(db, 'users', otherParticipantId);
@@ -80,7 +98,6 @@ const Messages = () => {
   const handleConversationClick = async (conversation: Conversation) => {
     router.push(`/tabs/messages/${conversation.id}`);
 
-    // Mark messages as read
     const q = query(
       collection(db, 'messages'),
       where('conversationId', '==', conversation.id),
@@ -148,7 +165,7 @@ const Messages = () => {
               <Text style={styles.username}>{otherParticipant.username}</Text>
               <View style={styles.lastMessageContainer}>
                 <Text style={styles.lastMessage} numberOfLines={1}>
-                  {item.lastMessage?.message || 'No messages yet'}
+                  {item.lastMessage && item.lastMessage.message ? item.lastMessage.message : 'No messages yet'}
                 </Text>
                 <Text style={styles.timeIndicator}>
                   {item.lastMessage?.timestamp ? formatTimestamp(item.lastMessage.timestamp) : ''}

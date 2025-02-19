@@ -22,6 +22,7 @@ import {
   onSnapshot,
   addDoc,
   getDoc,
+  updateDoc,
   orderBy,
   serverTimestamp,
 } from 'firebase/firestore';
@@ -135,8 +136,8 @@ const MessageScreen = () => {
   }, [messageId]);
 
   const handleSendMessage = async () => {
-    if (!auth.currentUser) return;
-
+    if (!auth.currentUser || !newMessage.trim()) return;
+  
     try {
       const messageData: Message = {
         senderId: auth.currentUser.uid,
@@ -145,19 +146,33 @@ const MessageScreen = () => {
         timestamp: serverTimestamp() as any,
         isRead: false,
       };
-
+  
+      // Add the message to the 'messages' collection
       await addDoc(collection(db, 'messages'), {
         ...messageData,
         conversationId: messageId,
       });
-
+    
+      // **Update lastMessage in the conversations collection**
+      await updateDoc(doc(db, "conversations", messageId), {
+        lastMessage: {
+          message: newMessage,
+          senderId: auth.currentUser.uid,
+          timestamp: serverTimestamp(),
+          isRead: false,
+        },
+      });
+    
+      // Clear input and auto-scroll
       setNewMessage('');
       setIsUserScrolling(false);
       scrollViewRef.current?.scrollToEnd({ animated: true });
+  
     } catch (error) {
-      console.error('Error sending message: ', error);
+      console.error("❌ Error sending message:", error);
     }
   };
+  
 
   const formatDate = (msgDate: Date): string => {
     const now = new Date();
