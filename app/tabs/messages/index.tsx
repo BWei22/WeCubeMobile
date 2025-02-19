@@ -87,6 +87,14 @@ const Messages = () => {
         }
       }
 
+      // **Sort Conversations by Most Recent Message**
+      convos.sort((a, b) => {
+        if (a.lastMessage?.timestamp && b.lastMessage?.timestamp) {
+          return b.lastMessage.timestamp.toMillis() - a.lastMessage.timestamp.toMillis();
+        }
+        return 0;
+      });
+
       setConversations(convos);
       setUsernames(prevState => ({ ...prevState, ...usernamesMap }));
       setLoading(false);
@@ -164,8 +172,14 @@ const Messages = () => {
             <View style={styles.conversationDetails}>
               <Text style={styles.username}>{otherParticipant.username}</Text>
               <View style={styles.lastMessageContainer}>
-                <Text style={styles.lastMessage} numberOfLines={1}>
-                  {item.lastMessage && item.lastMessage.message ? item.lastMessage.message : 'No messages yet'}
+                <Text 
+                  style={[
+                    styles.lastMessage, 
+                    hasUnreadMessages(item) ? styles.unreadMessage : {}
+                  ]} 
+                  numberOfLines={1}
+                >
+                  {item.lastMessage?.message || 'No messages yet'}
                 </Text>
                 <Text style={styles.timeIndicator}>
                   {item.lastMessage?.timestamp ? formatTimestamp(item.lastMessage.timestamp) : ''}
@@ -249,6 +263,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#777',
     flexShrink: 1,
+  },
+  unreadMessage: {
+    fontWeight: 'bold',
+    color: '#000',
   },
   timeIndicator: {
     fontSize: 12,
