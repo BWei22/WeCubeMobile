@@ -187,16 +187,17 @@ const CreateListing = () => {
           />
         </View>
 
-        <TouchableOpacity onPress={handleImageChange} style={styles.imageButton}>
-          <Text style={styles.imageButtonText}>Upload Picture</Text>
+        {/* Upload Picture as a text link */}
+        <TouchableOpacity onPress={handleImageChange}>
+          <Text style={styles.uploadText}>Upload Picture</Text>
         </TouchableOpacity>
         {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
 
         {loading ? (
           <ActivityIndicator size="large" color="#007BFF" />
         ) : (
-          <TouchableOpacity onPress={handleSubmit}>
-            <Text style={styles.submitText}>Submit Listing</Text>
+          <TouchableOpacity onPress={handleSubmit} style={styles.submitButton}>
+            <Text style={styles.submitButtonText}>Submit Listing</Text>
           </TouchableOpacity>
         )}
       </KeyboardAwareScrollView>
@@ -243,16 +244,12 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 15,
   },
-  imageButton: {
-    backgroundColor: '#007BFF',
-    padding: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  imageButtonText: {
-    color: '#fff',
+  uploadText: {
+    textAlign: 'center',
     fontSize: 17,
+    color: '#007BFF',
+    marginTop: 10,
+    textDecorationLine: 'underline',
   },
   imagePreview: {
     height: 150,
@@ -260,13 +257,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderRadius: 10,
   },
-  submitText: {
-    textAlign: 'center',
-    fontSize: 17,
-    color: '#007BFF',
+  submitButton: {
+    backgroundColor: '#007BFF',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
     marginTop: 20,
   },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 17,
+  },
 });
-
 
 export default CreateListing;
