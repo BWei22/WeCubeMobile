@@ -59,7 +59,7 @@ function SignUp() {
         createdAt: serverTimestamp(),
       });
 
-      router.replace('/tabs/competitions');
+      router.replace('/profilesetup');
     } catch (error) {
       setError(error.message);
     }
