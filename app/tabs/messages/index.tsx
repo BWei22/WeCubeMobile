@@ -36,43 +36,42 @@ const Messages = () => {
 
   useEffect(() => {
     if (!auth.currentUser) return;
-
+  
     const q = query(
       collection(db, 'conversations'),
       where('participants', 'array-contains', auth.currentUser.uid)
     );
-
+  
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const convos: Conversation[] = [];
       const usernamesMap: { [key: string]: User } = {};
-
+  
       for (const docSnapshot of snapshot.docs) {
         const data = docSnapshot.data() as Conversation;
         const conversationData = { ...data, id: docSnapshot.id };
-
-        if (!data.lastMessage || !data.lastMessage.message) { 
-          const messagesQuery = query(
-            collection(db, "messages"),
-            where("conversationId", "==", docSnapshot.id),
-            orderBy("timestamp", "desc"),
-            limit(1)
-          );
+  
+        // **Fetch Last Message**
+        const messagesQuery = query(
+          collection(db, "messages"),
+          where("conversationId", "==", docSnapshot.id),
+          orderBy("timestamp", "desc"),
+          limit(1)
+        );
         
-          const messagesSnapshot = await getDocs(messagesQuery);
-          
-          if (!messagesSnapshot.empty) {
-            const lastMessageData = messagesSnapshot.docs[0].data();
-            conversationData.lastMessage = lastMessageData as {
-              message: string;
-              senderId: string;
-              timestamp: any;
-              isRead?: boolean;
-            };
-          }
-        }        
-
-        convos.push(conversationData);
-
+        const messagesSnapshot = await getDocs(messagesQuery);
+        
+        if (!messagesSnapshot.empty) {
+          const lastMessageData = messagesSnapshot.docs[0].data();
+          conversationData.lastMessage = lastMessageData as {
+            message: string;
+            senderId: string;
+            timestamp: any;
+            isRead?: boolean;
+          };
+  
+          convos.push(conversationData); // ✅ Add conversation only if a message exists
+        }
+  
         const otherParticipantId = data.participants.find(id => id !== auth.currentUser?.uid);
         if (otherParticipantId && !usernamesMap[otherParticipantId]) {
           const userDocRef = doc(db, 'users', otherParticipantId);
@@ -86,7 +85,7 @@ const Messages = () => {
           }
         }
       }
-
+  
       // **Sort Conversations by Most Recent Message**
       convos.sort((a, b) => {
         if (a.lastMessage?.timestamp && b.lastMessage?.timestamp) {
@@ -94,14 +93,15 @@ const Messages = () => {
         }
         return 0;
       });
-
+  
       setConversations(convos);
       setUsernames(prevState => ({ ...prevState, ...usernamesMap }));
       setLoading(false);
     });
-
+  
     return () => unsubscribe();
   }, []);
+  
 
   const handleConversationClick = async (conversation: Conversation) => {
     router.push(`/tabs/messages/${conversation.id}`);
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     color: '#777',
     flexShrink: 1,
   },
-  unreadMessage: {
+  unreadMessage: { 
     fontWeight: 'bold',
     color: '#000',
   },
