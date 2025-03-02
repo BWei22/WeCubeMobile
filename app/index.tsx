@@ -7,7 +7,7 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to WeCubeMobile</Text>
+      <Text style={styles.title}>Welcome to WeCube</Text>
       <Text style={styles.subtitle}>Your all-in-one marketplace for WCA competitions.</Text>
 
       {/* Buttons */}

@@ -4,7 +4,7 @@
     "slug": "WeCubeMobile",
     "version": "1.0.8",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/wecube.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
@@ -14,8 +14,12 @@
     },
     "ios": {
       "supportsTablet": true,
+      "deploymentTarget": "18.0",
       "bundleIdentifier": "com.wecubemobile.app",
-      "buildNumber": "14"
+      "buildNumber": "17",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
