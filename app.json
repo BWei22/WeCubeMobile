@@ -4,7 +4,7 @@
     "slug": "WeCubeMobile",
     "version": "1.0.8",
     "orientation": "portrait",
-    "icon": "./assets/wecube.png",
+    "icon": "./assets/wecube-icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
