@@ -7,7 +7,6 @@ import {
   ScrollView,
   Image,
   StyleSheet,
-  ActivityIndicator,
   Keyboard,
   LayoutAnimation,
   Platform,
@@ -47,7 +46,6 @@ const MessageScreen = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  const router = useRouter();
 
   useEffect(() => {
     let showListener: EmitterSubscription;

@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   StyleSheet,
   KeyboardAvoidingView,
   TouchableWithoutFeedback,

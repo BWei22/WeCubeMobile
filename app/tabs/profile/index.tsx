@@ -19,7 +19,7 @@ import { updateProfile, signOut } from 'firebase/auth';
 import { query, collection, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { AntDesign, MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 
 const ProfileScreen = () => {
   const [username, setUsername] = useState('');
@@ -142,8 +142,6 @@ const ProfileScreen = () => {
     }
   
     try {
-      console.log("🔍 Checking if username is taken...");
-  
       const usernameQuery = query(collection(db, "users"), where("username", "==", trimmedUsername));
       const querySnapshot = await getDocs(usernameQuery);
   
@@ -154,12 +152,10 @@ const ProfileScreen = () => {
       }
   
       // ✅ **Step 2: Update Username** (if no validation errors)
-      console.log("✅ Username is valid, updating...");
       await updateProfile(user, { displayName: trimmedUsername });
       await updateDoc(doc(db, "users", user.uid), { username: trimmedUsername });
   
       Alert.alert("Success", "Username updated successfully!");
-      console.log("🏁 Username update complete!");
   
     } catch (error) {
       Alert.alert("Error", "Failed to update username. Please try again.");
