@@ -46,24 +46,64 @@ function SignUp() {
   }, []);
 
   const handleSignUp = async () => {
+    setError('');
+  
+    if (!email.trim()) {
+      setError('Please enter your email.');
+      return;
+    }
+    if (!password.trim()) {
+      setError('Please enter a password.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+  
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       const username = generateUsername();
-
+  
       await updateProfile(user, { displayName: username });
-
+  
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
         username: username,
         createdAt: serverTimestamp(),
       });
-
+  
       router.replace('/profilesetup');
     } catch (error) {
-      setError(error.message);
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+  
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/invalid-email':
+            errorMessage = 'Please enter a valid email address.';
+            break;
+          case 'auth/email-already-in-use':
+            errorMessage = 'This email is already registered. Try logging in instead.';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Password is too weak. Please use a stronger password.';
+            break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your internet connection.';
+            break;
+          case 'auth/operation-not-allowed':
+            errorMessage = 'Sign-ups are currently disabled. Please contact support.';
+            break;
+          default:
+            console.log('Sign-up failed:', error.message);
+        }
+      }
+  
+      setError(errorMessage);
     }
   };
+  
 
   return (
     <KeyboardAvoidingView

@@ -45,20 +45,45 @@ function PasswordRecovery() {
   const handlePasswordRecovery = () => {
     setMessage('');
     setError('');
-
+  
     if (!email.trim()) {
       setError('Please enter your email.');
       return;
     }
-
+  
     sendPasswordResetEmail(auth, email)
       .then(() => {
-        setMessage('📩 Password reset email sent! Check your inbox.');
+        setMessage('Password reset email sent! Check your inbox.');
       })
       .catch((error) => {
-        setError('❌ ' + error.message);
+        let errorMessage = 'An unexpected error occurred. Please try again.';
+  
+        if (error.code) {
+          switch (error.code) {
+            case 'auth/invalid-email':
+              errorMessage = 'Please enter a valid email address.';
+              break;
+            case 'auth/missing-email':
+              errorMessage = 'Please enter your email.';
+              break;
+            case 'auth/user-not-found':
+              errorMessage = 'No account found with this email. Please sign up first.';
+              break;
+            case 'auth/network-request-failed':
+              errorMessage = 'Network error. Please check your internet connection.';
+              break;
+            case 'auth/too-many-requests':
+              errorMessage = 'Too many requests. Please wait before trying again.';
+              break;
+            default:
+              console.log('Password recovery failed:', error.message);
+          }
+        }
+  
+        setError(errorMessage);
       });
   };
+  
 
   return (
     <KeyboardAvoidingView
@@ -99,7 +124,7 @@ function PasswordRecovery() {
             {/* Back to Login Link */}
             <TouchableOpacity onPress={() => router.replace('/login')} style={styles.link}>
               <Text style={styles.linkText}>
-                <Text style={styles.backToLoginText}>⬅ Back to Login</Text>
+                <Text style={styles.backToLoginText}>Back to Login</Text>
               </Text>
             </TouchableOpacity>
           </View>

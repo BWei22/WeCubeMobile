@@ -49,10 +49,71 @@ function Login() {
         router.replace('/tabs/competitions');
       })
       .catch((error) => {
-        setError(error.message);
-        console.log('Login failed:', error.message);
+        let errorMessage = 'An unexpected error occurred. Please try again.';
+  
+        if (error.code) {
+          switch (error.code) {
+            case 'auth/invalid-email':
+              errorMessage = 'Please enter a valid email address.';
+              break;
+            case 'auth/missing-password':
+              errorMessage = 'Please enter your password.';
+              break;
+            case 'auth/email-already-exists':
+              errorMessage = 'This email is already associated with an account. Please log in.';
+              break;
+            case 'auth/user-disabled':
+              errorMessage = 'This account has been disabled. Contact support for help.';
+              break;
+            case 'auth/user-not-found':
+              errorMessage = 'No account found with this email. Please sign up first.';
+              break;
+            case 'auth/wrong-password':
+              errorMessage = 'Incorrect password. Please try again.';
+              break;
+            case 'auth/too-many-requests':
+              errorMessage = 'Too many login attempts. Please try again later.';
+              break;
+            case 'auth/network-request-failed':
+              errorMessage = 'Network error. Please check your internet connection.';
+              break;
+            case 'auth/id-token-expired':
+              errorMessage = 'Your session has expired. Please log in again.';
+              break;
+            case 'auth/id-token-revoked':
+              errorMessage = 'Your session has been revoked. Please log in again.';
+              break;
+            case 'auth/invalid-credential':
+              errorMessage = 'Invalid credentials. Please try again.';
+              break;
+            case 'auth/invalid-password':
+              errorMessage = 'Your password must be at least six characters long.';
+              break;
+            case 'auth/operation-not-allowed':
+              errorMessage = 'Sign-in method is currently disabled. Please contact support.';
+              break;
+            case 'auth/session-cookie-expired':
+              errorMessage = 'Your session has expired. Please log in again.';
+              break;
+            case 'auth/session-cookie-revoked':
+              errorMessage = 'Your session has been revoked. Please log in again.';
+              break;
+            case 'auth/unauthorized-continue-uri':
+              errorMessage = 'Invalid redirect. Please check your login method.';
+              break;
+            case 'auth/internal-error':
+              errorMessage = 'Internal server error. Please try again later.';
+              break;
+            default:
+              console.log('Login failed:', error.message);
+          }
+        }
+  
+        setError(errorMessage);
       });
   };
+  
+  
 
   return (
     <KeyboardAvoidingView
