@@ -4,28 +4,31 @@ import { Stack } from 'expo-router';
 export default function CompetitionStack() {
   return (
     <Stack>
-      {/* Competitions List */}
       <Stack.Screen
         name="index"
         options={{ title: '', headerShown: false }}
       />
 
-      {/* Specific Competition */}
+      {/* ✅ Explicitly define route.params type */}
       <Stack.Screen
         name="[competitionId]/index"
-        options={{ title: '', headerShown: true }}
+        options={({ route }) => {
+          const params = route.params as { name?: string }; // Explicitly define type
+          return {
+            title: params?.name ?? 'Competition Details',
+            headerShown: true,
+          };
+        }}
       />
 
-      {/* Create New Listing */}
       <Stack.Screen
         name="[competitionId]/create-listing"
-        options={{ title: '', headerShown: true }}
+        options={{ title: 'Create Listing', headerShown: true }}
       />
 
-      {/* Specific Listing */}
       <Stack.Screen
         name="[competitionId]/[listingId]/index"
-        options={{ title: '', headerShown: true }}
+        options={{ title: 'Listing Details', headerShown: true }}
       />
     </Stack>
   );

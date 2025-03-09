@@ -96,10 +96,13 @@ const Competitions = () => {
     }
   };
 
-  const handleCompetitionClick = (competitionId: string) => {
-    router.push(`/tabs/competitions/${competitionId}`);
+  const handleCompetitionClick = (competition: Competition) => {
+    router.push({
+      pathname: `/tabs/competitions/[competitionId]`,
+      params: { competitionId: competition.id, name: competition.name }
+    });
   };
-
+  
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -159,7 +162,7 @@ const Competitions = () => {
               data={sortedCompetitions}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-                <TouchableOpacity style={styles.competitionCard} onPress={() => handleCompetitionClick(item.id)}>
+                <TouchableOpacity style={styles.competitionCard} onPress={() => handleCompetitionClick(item)}>
                   <Flag code={item.country} size={48} style={styles.flag} />
                   <View style={styles.detailsContainer}>
                     <Text style={styles.competitionName}>{item.name}</Text>

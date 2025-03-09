@@ -27,7 +27,7 @@ interface Listing {
 }
 
 const Listings = () => {
-  const { competitionId } = useLocalSearchParams();
+  const { competitionId, name } = useLocalSearchParams();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -61,6 +61,12 @@ const Listings = () => {
     return () => unsubscribe();
   }, [competitionId]);
 
+  useEffect(() => {
+    if (name) {
+      router.setParams({ name });
+    }
+  }, [name]);
+
   if (loading) {
     return (
       <View style={styles.centeredContainer}>
@@ -72,6 +78,7 @@ const Listings = () => {
 
   return (
     <View style={{ flex: 1, padding: 20 }}>
+      
       {listings.length === 0 ? (
         <View style={styles.centeredContainer}>
           <Text style={styles.placeholderText}>No listings yet!</Text>
@@ -122,6 +129,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  competitionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 15,
+    color: '#333',
   },
   placeholderText: {
     fontSize: 18,

@@ -134,8 +134,6 @@ const CreateListing = () => {
         keyboardShouldPersistTaps="handled"
         extraScrollHeight={Platform.OS === 'ios' ? 140 : 60} // Moves page up further when keyboard opens
       >
-        <Text style={styles.header}>Create a New Listing</Text>
-
         <View style={styles.card}>
           <TextInput
             placeholder="Puzzle Name"
