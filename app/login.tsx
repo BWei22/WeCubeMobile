@@ -14,8 +14,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { auth } from '../firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from '../firebase';
+import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -25,95 +26,107 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [resendCooldown, setResendCountdown] = useState(0);
+  const [userForResend, setUserForResend] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
-    const keyboardShowListener = Keyboard.addListener('keyboardWillShow', () => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    });
+    if (resendCooldown > 0) {
+      const interval = setInterval(() => {
+        setResendCountdown((prev) => (prev > 1 ? prev - 1 : 0));
+      }, 1000);
 
-    const keyboardHideListener = Keyboard.addListener('keyboardWillHide', () => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    });
+      return () => clearInterval(interval);
+    }
+  }, [resendCooldown]);
 
-    return () => {
-      keyboardShowListener.remove();
-      keyboardHideListener.remove();
-    };
-  }, []);
+  const handleLogin = async () => {
+    setError('');
+    setMessage('');
 
-  const handleLogin = () => {
-    signInWithEmailAndPassword(auth, email, password)
-      .then(() => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        setError('⚠ Your email is not verified. Please check your inbox.');
+        setUserForResend(user); // Save user for resend option
+        return;
+      }
+
+      // ✅ Check if user has completed profile setup in Firestore
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data();
+
+      if (userData && !userData.hasCompletedProfileSetup) {
+        console.log('Redirecting to profile setup...');
+        router.replace('/profilesetup');
+      } else {
         console.log('Login successful, navigating to home page...');
         router.replace('/tabs/competitions');
-      })
-      .catch((error) => {
-        let errorMessage = 'An unexpected error occurred. Please try again.';
-  
-        if (error.code) {
-          switch (error.code) {
-            case 'auth/invalid-email':
-              errorMessage = 'Please enter a valid email address.';
-              break;
-            case 'auth/missing-password':
-              errorMessage = 'Please enter your password.';
-              break;
-            case 'auth/email-already-exists':
-              errorMessage = 'This email is already associated with an account. Please log in.';
-              break;
-            case 'auth/user-disabled':
-              errorMessage = 'This account has been disabled. Contact support for help.';
-              break;
-            case 'auth/user-not-found':
-              errorMessage = 'No account found with this email. Please sign up first.';
-              break;
-            case 'auth/wrong-password':
-              errorMessage = 'Incorrect password. Please try again.';
-              break;
-            case 'auth/too-many-requests':
-              errorMessage = 'Too many login attempts. Please try again later.';
-              break;
-            case 'auth/network-request-failed':
-              errorMessage = 'Network error. Please check your internet connection.';
-              break;
-            case 'auth/id-token-expired':
-              errorMessage = 'Your session has expired. Please log in again.';
-              break;
-            case 'auth/id-token-revoked':
-              errorMessage = 'Your session has been revoked. Please log in again.';
-              break;
-            case 'auth/invalid-credential':
-              errorMessage = 'Invalid credentials. Please try again.';
-              break;
-            case 'auth/invalid-password':
-              errorMessage = 'Your password must be at least six characters long.';
-              break;
-            case 'auth/operation-not-allowed':
-              errorMessage = 'Sign-in method is currently disabled. Please contact support.';
-              break;
-            case 'auth/session-cookie-expired':
-              errorMessage = 'Your session has expired. Please log in again.';
-              break;
-            case 'auth/session-cookie-revoked':
-              errorMessage = 'Your session has been revoked. Please log in again.';
-              break;
-            case 'auth/unauthorized-continue-uri':
-              errorMessage = 'Invalid redirect. Please check your login method.';
-              break;
-            case 'auth/internal-error':
-              errorMessage = 'Internal server error. Please try again later.';
-              break;
-            default:
-              console.log('Login failed:', error.message);
-          }
-        }
-  
-        setError(errorMessage);
-      });
+      }
+    } catch (error) {
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+
+      switch (error.code) {
+        case 'auth/invalid-email':
+          errorMessage = 'Please enter a valid email address.';
+          break;
+        case 'auth/missing-password':
+          errorMessage = 'Please enter your password.';
+          break;
+        case 'auth/user-disabled':
+          errorMessage = 'This account has been disabled. Contact support for help.';
+          break;
+        case 'auth/invalid-credential':
+          errorMessage = 'Incorrect email or password. Please try again.';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Too many login attempts. Please try again later.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your internet connection.';
+          break;
+        default:
+          console.log('Login failed:', error.message);
+      }
+
+      setError(errorMessage);
+    }
   };
-  
-  
+
+  // ✅ Resend Verification Email when Login Fails Due to Unverified Email
+  const resendVerificationEmail = async () => {
+    if (!userForResend) return;
+
+    await userForResend.reload();
+
+    if (userForResend.emailVerified) {
+      setMessage('✅ Your email is already verified. You can log in now.');
+      return;
+    }
+
+    if (resendCooldown > 0) {
+      setError(`⏳ Please wait ${resendCooldown} seconds before trying again.`);
+      return;
+    }
+
+    try {
+      await sendEmailVerification(userForResend);
+      setMessage('📩 Verification email resent! Check your inbox.');
+      setResendCountdown(30);
+    } catch (error) {
+      let errorMessage = '❌ Failed to resend verification email. Please try again later.';
+
+      if (error.code === 'auth/too-many-requests') {
+        errorMessage = '⚠ You’ve requested too many emails. Please wait before trying again.';
+        setResendCountdown(60);
+      }
+
+      setError(errorMessage);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -123,13 +136,11 @@ function Login() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.inner}>
-            {/* Title and Subtitle (Grouped for Sync Movement) */}
             <View style={styles.headerContainer}>
               <Text style={styles.title}>Welcome Back</Text>
               <Text style={styles.subtitle}>Log in to continue</Text>
             </View>
 
-            {/* Input Fields */}
             <TextInput
               placeholder="Email"
               placeholderTextColor="#aaa"
@@ -149,15 +160,27 @@ function Login() {
               style={styles.input}
             />
 
-            {/* Error Message */}
+            {message ? <Text style={styles.successText}>{message}</Text> : null}
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            {/* Login Button */}
             <TouchableOpacity onPress={handleLogin} style={styles.loginButton}>
               <Text style={styles.loginButtonText}>Log In</Text>
             </TouchableOpacity>
 
-            {/* Links */}
+            {userForResend && !userForResend.emailVerified && (
+              resendCooldown > 0 ? (
+                <Text style={styles.cooldownText}>
+                  ⏳ Please wait {resendCooldown} seconds before resending.
+                </Text>
+              ) : (
+                <TouchableOpacity onPress={resendVerificationEmail} style={styles.link}>
+                  <Text style={styles.linkText}>
+                    Didn't receive an email? <Text style={styles.signupText}>Resend Verification</Text>
+                  </Text>
+                </TouchableOpacity>
+              )
+            )}
+
             <TouchableOpacity onPress={() => router.replace('/password-recovery')} style={styles.link}>
               <Text style={styles.linkText}>Forgot Password?</Text>
             </TouchableOpacity>
@@ -189,6 +212,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 25,
   },
+  cooldownText: {
+    color: '#777',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 10,
+  },
   headerContainer: {
     alignItems: 'center', // Keeps title & subtitle centered
     marginBottom: 30, // Provides space before inputs
@@ -213,6 +242,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontSize: 16,
     color: '#333',
+  },
+    successText: {
+    color: 'green',
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 15,
   },
   errorText: {
     color: 'red',

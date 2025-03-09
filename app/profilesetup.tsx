@@ -104,6 +104,7 @@ const ProfileSetup = () => {
       await updateDoc(doc(db, 'users', user.uid), {
         username: trimmedUsername,
         photoURL: photoURL !== DEFAULT_AVATAR ? photoURL : null,
+        hasCompletedProfileSetup: true,
       });
 
       router.replace('/tabs/competitions'); // Redirect user after setup

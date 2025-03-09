@@ -9,13 +9,12 @@ import {
   Keyboard,
   StyleSheet,
   Platform,
-  LayoutAnimation,
   UIManager,
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db } from '../firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -26,28 +25,34 @@ function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [resendCountdown, setResendCountdown] = useState(0);
   const router = useRouter();
+
+  // ✅ Countdown timer effect (clears error when countdown ends)
+  useEffect(() => {
+    if (resendCountdown > 0) {
+      const interval = setInterval(() => {
+        setResendCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setError(''); // ✅ Clears "too many requests" error when countdown ends
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(interval); // Cleanup when unmounted
+    }
+  }, [resendCountdown]);
 
   const generateUsername = () => `user${Date.now()}`;
 
-  useEffect(() => {
-    const keyboardShowListener = Keyboard.addListener('keyboardWillShow', () => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    });
-
-    const keyboardHideListener = Keyboard.addListener('keyboardWillHide', () => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    });
-
-    return () => {
-      keyboardShowListener.remove();
-      keyboardHideListener.remove();
-    };
-  }, []);
-
   const handleSignUp = async () => {
     setError('');
-  
+    setMessage('');
+
     if (!email.trim()) {
       setError('Please enter your email.');
       return;
@@ -60,24 +65,28 @@ function SignUp() {
       setError('Password must be at least 6 characters long.');
       return;
     }
-  
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       const username = generateUsername();
-  
+
       await updateProfile(user, { displayName: username });
-  
+
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
         username: username,
+        photoURL: null,
+        hasCompletedProfileSetup: false,
         createdAt: serverTimestamp(),
       });
-  
-      router.replace('/profilesetup');
+
+      await sendEmailVerification(user);
+      setMessage('📩 Verification email sent! Please check your inbox.');
+
     } catch (error) {
       let errorMessage = 'An unexpected error occurred. Please try again.';
-  
+
       if (error.code) {
         switch (error.code) {
           case 'auth/invalid-email':
@@ -99,11 +108,51 @@ function SignUp() {
             console.log('Sign-up failed:', error.message);
         }
       }
-  
+
       setError(errorMessage);
     }
   };
-  
+
+  // ✅ Resend Verification Email Function with Rate Limiting Handling
+  const resendVerificationEmail = async () => {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setError('You must be logged in to verify your email.');
+      return;
+    }
+
+    await user.reload();
+
+    if (user.emailVerified) {
+      setMessage('✅ Your email is already verified. You can log in now.');
+      return;
+    }
+
+    if (resendCountdown > 0) {
+      setError(`⏳ Please wait ${resendCountdown} seconds before trying again.`);
+      return;
+    }
+
+    try {
+      await sendEmailVerification(user);
+      setMessage('📩 Verification email resent! Check your inbox.');
+
+      // ⏳ Set cooldown for 30 seconds
+      setResendCountdown(30);
+    } catch (error) {
+      console.error('Failed to resend verification email:', error);
+
+      let errorMessage = '❌ Failed to resend verification email. Please try again later.';
+
+      if (error.code === 'auth/too-many-requests') {
+        errorMessage = '⚠ You’ve requested too many emails. Please wait before trying again.';
+        setResendCountdown(60);
+      }
+
+      setError(errorMessage);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -113,13 +162,11 @@ function SignUp() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.inner}>
-            {/* Title and Subtitle (Grouped for Sync Movement) */}
             <View style={styles.headerContainer}>
               <Text style={styles.title}>Create an Account</Text>
               <Text style={styles.subtitle}>Sign up to get started</Text>
             </View>
 
-            {/* Input Fields */}
             <TextInput
               placeholder="Email"
               placeholderTextColor="#aaa"
@@ -139,15 +186,27 @@ function SignUp() {
               style={styles.input}
             />
 
-            {/* Error Message */}
+            {message ? <Text style={styles.successText}>{message}</Text> : null}
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            {/* Sign Up Button */}
             <TouchableOpacity onPress={handleSignUp} style={styles.signupButton}>
               <Text style={styles.signupButtonText}>Sign Up</Text>
             </TouchableOpacity>
 
-            {/* Links */}
+            {message.includes('Verification email sent') && (
+              resendCountdown > 0 ? (
+                <Text style={styles.cooldownText}>
+                  ⏳ Please wait {resendCountdown} seconds before resending.
+                </Text>
+              ) : (
+                <TouchableOpacity onPress={resendVerificationEmail} style={styles.link}>
+                  <Text style={styles.linkText}>
+                    Didn't receive an email? <Text style={styles.signupText}>Resend Verification</Text>
+                  </Text>
+                </TouchableOpacity>
+              )
+            )}
+
             <TouchableOpacity onPress={() => router.replace('/login')} style={styles.link}>
               <Text style={styles.linkText}>
                 Already have an account? <Text style={styles.signupText}>Log In</Text>
@@ -160,7 +219,7 @@ function SignUp() {
   );
 }
 
-/* 💡 Matched Styles to the Login Page */
+/* ✅ Updated Styles */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -175,9 +234,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 25,
   },
+  cooldownText: {
+    color: '#777',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 10,
+  },
   headerContainer: {
-    alignItems: 'center', // Keeps title & subtitle centered
-    marginBottom: 30, // Provides space before inputs
+    alignItems: 'center',
+    marginBottom: 30,
   },
   title: {
     fontSize: 26,
@@ -200,11 +265,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
+  successText: {
+    color: 'green',
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 15,
+  },
   errorText: {
     color: 'red',
-    marginBottom: 10,
+    fontSize: 15,
     textAlign: 'center',
-    fontSize: 14,
+    marginBottom: 15,
   },
   signupButton: {
     backgroundColor: '#007BFF',
