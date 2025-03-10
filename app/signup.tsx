@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -24,26 +25,26 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [resendCountdown, setResendCountdown] = useState(0);
   const router = useRouter();
 
-  // ✅ Countdown timer effect (clears error when countdown ends)
   useEffect(() => {
     if (resendCountdown > 0) {
       const interval = setInterval(() => {
         setResendCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(interval);
-            setError(''); // ✅ Clears "too many requests" error when countdown ends
+            setError('');
             return 0;
           }
           return prev - 1;
         });
       }, 1000);
 
-      return () => clearInterval(interval); // Cleanup when unmounted
+      return () => clearInterval(interval);
     }
   }, [resendCountdown]);
 
@@ -113,7 +114,6 @@ function SignUp() {
     }
   };
 
-  // ✅ Resend Verification Email Function with Rate Limiting Handling
   const resendVerificationEmail = async () => {
     const user = auth.currentUser;
 
@@ -137,12 +137,9 @@ function SignUp() {
     try {
       await sendEmailVerification(user);
       setMessage('📩 Verification email resent! Check your inbox.');
-
-      // ⏳ Set cooldown for 30 seconds
       setResendCountdown(30);
     } catch (error) {
       console.error('Failed to resend verification email:', error);
-
       let errorMessage = '❌ Failed to resend verification email. Please try again later.';
 
       if (error.code === 'auth/too-many-requests') {
@@ -177,14 +174,19 @@ function SignUp() {
               style={styles.input}
             />
 
-            <TextInput
-              placeholder="Password"
-              placeholderTextColor="#aaa"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              style={styles.input}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                placeholder="Password"
+                placeholderTextColor="#aaa"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!passwordVisible}
+                style={styles.passwordInput}
+              />
+              <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)} style={styles.eyeIcon}>
+                <Ionicons name={passwordVisible ? "eye-off" : "eye"} size={24} color="#777" />
+              </TouchableOpacity>
+            </View>
 
             {message ? <Text style={styles.successText}>{message}</Text> : null}
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -306,6 +308,25 @@ const styles = StyleSheet.create({
   signupText: {
     color: '#007BFF',
     fontWeight: 'bold',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 25,
+    backgroundColor: '#fff',
+    paddingHorizontal: 15,
+    marginBottom: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 15,
+    fontSize: 16,
+    color: '#333',
+  },
+  eyeIcon: {
+    padding: 10,
   },
 });
 
