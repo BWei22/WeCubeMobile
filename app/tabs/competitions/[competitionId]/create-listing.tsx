@@ -19,6 +19,7 @@ import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import { db, auth } from '../../../../firebase';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { Ionicons } from '@expo/vector-icons'; // ✅ Import icons
 
 const puzzleTypes = [
   "3x3", "2x2", "4x4", "5x5", "6x6", "7x7",
@@ -39,7 +40,40 @@ const CreateListing = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // ✅ Let users choose between taking a photo or picking from gallery
   const handleImageChange = async () => {
+    Alert.alert(
+      'Upload Picture',
+      'Choose an option',
+      [
+        { text: 'Take a Photo', onPress: handleTakePhoto },
+        { text: 'Choose from Library ', onPress: handlePickImage },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  // 📷 Take a new photo using the camera
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission to access camera is required.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.2,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
+
+  // 🖼️ Choose an image from the gallery
+  const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission to access media library is required.');
@@ -56,6 +90,22 @@ const CreateListing = () => {
     if (!result.canceled) {
       setImage(result.assets[0].uri);
     }
+  };
+
+  // ✅ NEW: Delete uploaded image feature
+  const handleDeleteImage = () => {
+    Alert.alert(
+      "Delete Image",
+      "Are you sure you want to remove this image?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => setImage(null),
+        },
+      ]
+    );
   };
 
   const handlePriceChange = (input: string) => {
@@ -132,7 +182,7 @@ const CreateListing = () => {
       <KeyboardAwareScrollView 
         contentContainerStyle={styles.container} 
         keyboardShouldPersistTaps="handled"
-        extraScrollHeight={Platform.OS === 'ios' ? 140 : 60} // Moves page up further when keyboard opens
+        extraScrollHeight={Platform.OS === 'ios' ? 140 : 60}
       >
         <View style={styles.card}>
           <TextInput
@@ -185,11 +235,18 @@ const CreateListing = () => {
           />
         </View>
 
-        {/* Upload Picture as a text link */}
         <TouchableOpacity onPress={handleImageChange}>
           <Text style={styles.uploadText}>Upload Picture</Text>
         </TouchableOpacity>
-        {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
+
+        {image && (
+          <View style={styles.imageContainer}>
+            <Image source={{ uri: image }} style={styles.imagePreview} />
+            <TouchableOpacity onPress={handleDeleteImage} style={styles.deleteIcon}>
+              <Ionicons name="trash-outline" size={24} color="red" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {loading ? (
           <ActivityIndicator size="large" color="#007BFF" />
@@ -203,11 +260,27 @@ const CreateListing = () => {
   );
 };
 
+
 const styles = StyleSheet.create({
   container: {
     padding: 20,
     backgroundColor: '#f9f9f9',
     flexGrow: 1,
+  },
+  imageContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  deleteIcon: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   header: {
     fontSize: 26,
