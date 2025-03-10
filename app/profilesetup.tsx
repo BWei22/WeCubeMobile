@@ -21,7 +21,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { AntDesign } from '@expo/vector-icons';
 
-// Default avatar image (can be replaced with an actual URL)
 const DEFAULT_AVATAR = 'https://via.placeholder.com/120'; 
 
 const ProfileSetup = () => {
@@ -39,14 +38,53 @@ const ProfileSetup = () => {
 
   const bannedUsernames = ['admin', 'support', 'moderator'];
 
-  const pickImage = async () => {
+  // ✅ Let users choose between taking a photo or picking from gallery
+  const handleImageChange = async () => {
+    Alert.alert(
+      'Upload Picture',
+      'Choose an option',
+      [
+        { text: 'Take a Photo', onPress: handleTakePhoto },
+        { text: 'Choose from Library', onPress: handlePickImage },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  // 📷 Take a new photo using the camera
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission to access camera is required.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.2,
+    });
+
+    if (!result.canceled) {
+      setProfilePicture(result.assets[0].uri);
+    }
+  };
+
+  // 🖼️ Choose an image from the gallery
+  const handlePickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission to access media library is required.');
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.2,
     });
 
-    if (!result.canceled && result.assets.length > 0) {
+    if (!result.canceled) {
       setProfilePicture(result.assets[0].uri);
     }
   };
@@ -107,7 +145,7 @@ const ProfileSetup = () => {
         hasCompletedProfileSetup: true,
       });
 
-      router.replace('/tabs/competitions'); // Redirect user after setup
+      router.replace('/tabs/competitions'); 
 
     } catch (error) {
       Alert.alert('Error', 'Failed to complete profile setup. Please try again.');
@@ -126,7 +164,7 @@ const ProfileSetup = () => {
           <Text style={styles.title}>Complete Your Profile</Text>
           <Text style={styles.subtitle}>Choose a username and (optional) profile picture</Text>
 
-          <TouchableOpacity onPress={pickImage} style={styles.profilePictureTouchable}>
+          <TouchableOpacity onPress={handleImageChange} style={styles.profilePictureTouchable}>
             <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
             <View style={styles.cameraIcon}>
               <AntDesign name="camera" size={20} color="white" />
