@@ -2,12 +2,10 @@ import { initializeApp } from 'firebase/app';
 import { 
     initializeAuth, 
     getAuth, 
-    getReactNativePersistence, 
-    onAuthStateChanged,
-    sendEmailVerification
+    getReactNativePersistence 
 } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getFirestore, doc, updateDoc } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -32,17 +30,4 @@ const auth = initializeAuth(app, {
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// ✅ Automatically Update Firestore When Email is Verified
-onAuthStateChanged(auth, async (user) => {
-    if (user && user.emailVerified) {
-        try {
-            await updateDoc(doc(db, 'users', user.uid), {
-                emailVerified: true
-            });
-        } catch (error) {
-            console.error("Error updating email verification status:", error);
-        }
-    }
-});
-
-export { auth, db, storage, sendEmailVerification };
+export { auth, db, storage };
