@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { auth, db } from '../firebase';
-import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendEmailVerification, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -25,10 +25,10 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [resendCooldown, setResendCountdown] = useState(0);
-  const [userForResend, setUserForResend] = useState(null);
+  const [error, setError] = useState<string>('');
+  const [message, setMessage] = useState<string>('');
+  const [resendCooldown, setResendCountdown] = useState<number>(0);
+  const [userForResend, setUserForResend] = useState<User | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -66,30 +66,32 @@ function Login() {
         console.log('Login successful, navigating to home page...');
         router.replace('/tabs/competitions');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       let errorMessage = 'An unexpected error occurred. Please try again.';
 
-      switch (error.code) {
-        case 'auth/invalid-email':
-          errorMessage = 'Please enter a valid email address.';
-          break;
-        case 'auth/missing-password':
-          errorMessage = 'Please enter your password.';
-          break;
-        case 'auth/user-disabled':
-          errorMessage = 'This account has been disabled. Contact support for help.';
-          break;
-        case 'auth/invalid-credential':
-          errorMessage = 'Incorrect email or password. Please try again.';
-          break;
-        case 'auth/too-many-requests':
-          errorMessage = 'Too many login attempts. Please try again later.';
-          break;
-        case 'auth/network-request-failed':
-          errorMessage = 'Network error. Please check your internet connection.';
-          break;
-        default:
-          console.log('Login failed:', error.message);
+      if (error instanceof Error && 'code' in error) {
+        switch ((error as any).code) {
+          case 'auth/invalid-email':
+            errorMessage = 'Please enter a valid email address.';
+            break;
+          case 'auth/missing-password':
+            errorMessage = 'Please enter your password.';
+            break;
+          case 'auth/user-disabled':
+            errorMessage = 'This account has been disabled. Contact support for help.';
+            break;
+          case 'auth/invalid-credential':
+            errorMessage = 'Incorrect email or password. Please try again.';
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = 'Too many login attempts. Please try again later.';
+            break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your internet connection.';
+            break;
+          default:
+            console.log('Login failed:', (error as any).message);
+        }
       }
 
       setError(errorMessage);
@@ -100,26 +102,26 @@ function Login() {
   const resendVerificationEmail = async () => {
     if (!userForResend) return;
 
-    await userForResend.reload();
-
-    if (userForResend.emailVerified) {
-      setMessage('✅ Your email is already verified. You can log in now.');
-      return;
-    }
-
-    if (resendCooldown > 0) {
-      setError(`⏳ Please wait ${resendCooldown} seconds before trying again.`);
-      return;
-    }
-
     try {
+      await userForResend?.reload();
+
+      if (userForResend?.emailVerified) {
+        setMessage('✅ Your email is already verified. You can log in now.');
+        return;
+      }
+
+      if (resendCooldown > 0) {
+        setError(`⏳ Please wait ${resendCooldown} seconds before trying again.`);
+        return;
+      }
+
       await sendEmailVerification(userForResend);
       setMessage('📩 Verification email resent! Check your inbox.');
       setResendCountdown(30);
     } catch (error) {
       let errorMessage = '❌ Failed to resend verification email. Please try again later.';
 
-      if (error.code === 'auth/too-many-requests') {
+      if (error instanceof Error && 'code' in error && (error as any).code === 'auth/too-many-requests') {
         errorMessage = '⚠ You’ve requested too many emails. Please wait before trying again.';
         setResendCountdown(60);
       }

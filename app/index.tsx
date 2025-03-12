@@ -1,9 +1,47 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+
+// Configure how notifications should be handled
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+// Function to request permission and get the Expo push token
+async function registerForPushNotifications() {
+  const { status } = await Notifications.requestPermissionsAsync();
+  if (status !== 'granted') {
+    console.log('Permission for push notifications was denied');
+    return;
+  }
+
+  const token = await Notifications.getExpoPushTokenAsync();
+  console.log('Expo Push Token:', token.data);
+}
 
 export default function Home() {
   const router = useRouter();
+
+  useEffect(() => {
+    if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      registerForPushNotifications();
+    }
+
+    // Listen for incoming notifications
+    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Received push notification:', notification);
+    });
+
+    // Cleanup listener when component unmounts
+    return () => {
+      Notifications.removeNotificationSubscription(notificationListener);
+    };
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -71,4 +109,3 @@ const styles = StyleSheet.create({
     color: '#007BFF',
   },
 });
-

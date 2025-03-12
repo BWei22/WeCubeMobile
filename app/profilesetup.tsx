@@ -128,7 +128,8 @@ const ProfileSetup = () => {
 
       await updateProfile(user, { displayName: trimmedUsername });
 
-      let photoURL = profilePicture;
+      let photoURL = profilePicture ?? DEFAULT_AVATAR; // Ensure photoURL is always a string
+
       if (photoURL !== DEFAULT_AVATAR) {
         setUploading(true);
         const response = await fetch(photoURL);
@@ -165,7 +166,7 @@ const ProfileSetup = () => {
           <Text style={styles.subtitle}>Choose a username and (optional) profile picture</Text>
 
           <TouchableOpacity onPress={handleImageChange} style={styles.profilePictureTouchable}>
-            <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
+            <Image source={{ uri: profilePicture ?? DEFAULT_AVATAR }} style={styles.profilePicture} />
             <View style={styles.cameraIcon}>
               <AntDesign name="camera" size={20} color="white" />
             </View>

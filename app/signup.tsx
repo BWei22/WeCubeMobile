@@ -17,6 +17,7 @@ import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
+import { FirebaseError } from 'firebase/app';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -85,10 +86,10 @@ function SignUp() {
       await sendEmailVerification(user);
       setMessage('📩 Verification email sent! Please check your inbox.');
 
-    } catch (error) {
+    } catch (error: unknown) {
       let errorMessage = 'An unexpected error occurred. Please try again.';
 
-      if (error.code) {
+      if (error instanceof FirebaseError) {
         switch (error.code) {
           case 'auth/invalid-email':
             errorMessage = 'Please enter a valid email address.';
@@ -142,7 +143,7 @@ function SignUp() {
       console.error('Failed to resend verification email:', error);
       let errorMessage = '❌ Failed to resend verification email. Please try again later.';
 
-      if (error.code === 'auth/too-many-requests') {
+      if (error instanceof FirebaseError && error.code === 'auth/too-many-requests') {
         errorMessage = '⚠ You’ve requested too many emails. Please wait before trying again.';
         setResendCountdown(60);
       }
